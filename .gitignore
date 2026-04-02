@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+data/processed/
+*.DS_Store
+.venv/
+.env
+
+.ipynb_checkpoints/
+*.pyc
+
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Legacy project (original notebooks + data, kept for reference)
+legacy/
