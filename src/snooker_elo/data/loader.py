@@ -6,8 +6,17 @@ from pathlib import Path
 
 import pandas as pd
 
-# Default path relative to package root
-_DEFAULT_DATA_PATH = Path(__file__).parents[3] / "data" / "raw" / "matches.csv"
+def _find_default_path() -> Path:
+    """Find matches.csv, works both locally and on Render."""
+    candidates = [
+        Path(__file__).parents[3] / "data" / "raw" / "matches.csv",
+        Path.cwd() / "data" / "raw" / "matches.csv",
+        Path("/opt/render/project/src/data/raw/matches.csv"),
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return candidates[0]  # Fall back to first for error message
 
 
 def load_matches(path: str | Path | None = None) -> pd.DataFrame:
@@ -21,7 +30,7 @@ def load_matches(path: str | Path | None = None) -> pd.DataFrame:
         best_of, tournament_id, date, year], sorted by tournament order.
     """
     if path is None:
-        path = _DEFAULT_DATA_PATH
+        path = _find_default_path()
 
     df = pd.read_csv(
         path,

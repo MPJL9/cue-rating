@@ -14,12 +14,25 @@ from snooker_elo.web.engine import RatingEngine
 engine: RatingEngine | None = None
 
 
+def _find_data_dir() -> Path:
+    """Find the data/raw/ directory, works both locally and on Render."""
+    candidates = [
+        Path(__file__).parents[3] / "data" / "raw",   # Local: src/snooker_elo/web/app.py → repo root
+        Path.cwd() / "data" / "raw",                  # Render: cwd is repo root
+        Path("/opt/render/project/src/data/raw"),      # Render explicit path
+    ]
+    for p in candidates:
+        if (p / "matches.csv").exists():
+            return p
+    raise FileNotFoundError(f"Cannot find data/raw/matches.csv. Tried: {candidates}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize rating engines on startup."""
     global engine
-    data_path = Path(__file__).parents[3] / "data" / "raw" / "matches.csv"
-    engine = RatingEngine(str(data_path))
+    data_dir = _find_data_dir()
+    engine = RatingEngine(str(data_dir / "matches.csv"))
     engine.initialize()
     yield
     engine = None
