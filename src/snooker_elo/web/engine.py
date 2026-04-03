@@ -6,7 +6,9 @@ results from memory for fast API responses.
 
 from __future__ import annotations
 
+import random
 import time
+from math import comb
 
 import numpy as np
 import pandas as pd
@@ -274,4 +276,142 @@ class RatingEngine:
                 "max": int(self.matches["year"].max()),
             },
             "total_tournaments": len(self.matches["tournament_id"].unique()),
+        }
+
+    def get_rating_history(self, name: str) -> dict | None:
+        """Get rating history for a player (ELO snapshots per tournament)."""
+        ep = self.elo.players.get(name)
+        if ep is None:
+            return None
+
+        # ELO history from rating_history field
+        elo_history = []
+        for entry in ep.rating_history:
+            if len(entry) == 3:
+                tid, rating, year = entry
+                elo_history.append({"year": year, "rating": rating})
+
+        # Sample to max ~200 points for charting
+        if len(elo_history) > 200:
+            step = len(elo_history) // 200
+            elo_history = elo_history[::step]
+
+        return {
+            "name": name,
+            "elo_history": elo_history,
+            "current_elo": round(ep.rating),
+        }
+
+    def simulate_tournament(
+        self, player_names: list[str], best_of: int = 9, n_sims: int = 10000
+    ) -> dict:
+        """Monte Carlo tournament bracket simulation.
+
+        Simulates a single-elimination bracket n_sims times.
+        Players are seeded by ELO rating (highest seed gets easiest draw).
+
+        Returns win probability for each player at each round.
+        """
+        # Validate players and get frame win probabilities
+        valid_players = []
+        for name in player_names:
+            if name in self.elo.players:
+                valid_players.append(name)
+
+        if len(valid_players) < 2:
+            return {"error": "Need at least 2 valid players"}
+
+        # Pad to power of 2 with byes (None)
+        n = len(valid_players)
+        bracket_size = 1
+        while bracket_size < n:
+            bracket_size *= 2
+
+        # Seed by ELO rating
+        valid_players.sort(key=lambda x: -self.elo.players[x].rating)
+        bracket = list(valid_players) + [None] * (bracket_size - n)
+
+        # Pre-compute all pairwise frame win probabilities
+        probs = {}
+        for i, p1 in enumerate(valid_players):
+            for p2 in valid_players[i + 1:]:
+                fp = self.elo.predict_frame_win_prob(p1, p2)
+                mp = self.elo.match_win_prob(fp, best_of)
+                probs[(p1, p2)] = mp
+                probs[(p2, p1)] = 1.0 - mp
+
+        # Count how many rounds
+        n_rounds = 0
+        temp = bracket_size
+        while temp > 1:
+            n_rounds += 1
+            temp //= 2
+
+        round_names = []
+        if n_rounds >= 1:
+            round_names = [f"Round {i+1}" for i in range(n_rounds)]
+            if n_rounds >= 1:
+                round_names[-1] = "Final"
+            if n_rounds >= 2:
+                round_names[-2] = "Semi-Final"
+            if n_rounds >= 3:
+                round_names[-3] = "Quarter-Final"
+
+        # Simulate
+        rng = random.Random(42)
+        # Track: player -> [round1_advances, round2_advances, ..., wins]
+        counts = {p: [0] * n_rounds for p in valid_players}
+
+        for _ in range(n_sims):
+            current = list(bracket)
+
+            for round_idx in range(n_rounds):
+                next_round = []
+                for i in range(0, len(current), 2):
+                    p1 = current[i]
+                    p2 = current[i + 1] if i + 1 < len(current) else None
+
+                    if p1 is None and p2 is None:
+                        next_round.append(None)
+                    elif p2 is None:
+                        next_round.append(p1)
+                        if p1:
+                            counts[p1][round_idx] += 1
+                    elif p1 is None:
+                        next_round.append(p2)
+                        counts[p2][round_idx] += 1
+                    else:
+                        prob_p1 = probs.get((p1, p2), 0.5)
+                        if rng.random() < prob_p1:
+                            next_round.append(p1)
+                            counts[p1][round_idx] += 1
+                        else:
+                            next_round.append(p2)
+                            counts[p2][round_idx] += 1
+
+                current = next_round
+
+        # Build results
+        players_result = []
+        for p in valid_players:
+            entry = {
+                "name": p,
+                "elo_rating": round(self.elo.players[p].rating),
+                "rounds": {},
+            }
+            for r_idx, r_name in enumerate(round_names):
+                entry["rounds"][r_name] = round(counts[p][r_idx] / n_sims, 4)
+            # Win probability is the last round
+            entry["win_prob"] = round(counts[p][-1] / n_sims, 4) if n_rounds > 0 else 0
+            players_result.append(entry)
+
+        players_result.sort(key=lambda x: -x["win_prob"])
+
+        return {
+            "bracket_size": bracket_size,
+            "n_players": len(valid_players),
+            "n_simulations": n_sims,
+            "best_of": best_of,
+            "round_names": round_names,
+            "players": players_result,
         }

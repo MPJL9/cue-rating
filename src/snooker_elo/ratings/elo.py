@@ -70,7 +70,11 @@ class EloRating(RatingSystem):
         all_names = pd.concat([matches["player1"], matches["player2"]]).unique()
         for name in all_names:
             if name not in players:
-                players[name] = PlayerState(rating=default_rating)
+                players[name] = PlayerState(rating=default_rating, prev_rating=default_rating)
+
+        # Track match index for inactivity and tournament boundaries for history
+        match_idx = 0
+        current_tid = None
 
         # Main loop: iterate via itertuples for speed
         for row in matches.itertuples(index=False):
@@ -79,9 +83,24 @@ class EloRating(RatingSystem):
             score1 = int(row.score1)
             score2 = int(row.score2)
             year = int(row.year)
+            tid = str(row.tournament_id)
+
+            # Record rating snapshot at tournament boundaries
+            if tid != current_tid:
+                current_tid = tid
+                for pname in (p1_name, p2_name):
+                    p = players[pname]
+                    if not p.rating_history or p.rating_history[-1][0] != tid:
+                        p.rating_history.append((tid, round(p.rating), year))
 
             p1 = players[p1_name]
             p2 = players[p2_name]
+
+            # Save pre-match rating for momentum tracking
+            if p1.matches_played > 0 and p1.matches_played % 10 == 0:
+                p1.prev_rating = p1.rating
+            if p2.matches_played > 0 and p2.matches_played % 10 == 0:
+                p2.prev_rating = p2.rating
 
             # Update ELO ratings
             r1_new, r2_new = self._calculate_new_elo(
@@ -89,6 +108,11 @@ class EloRating(RatingSystem):
             )
             p1.rating = r1_new
             p2.rating = r2_new
+
+            # Track match index for inactivity
+            match_idx += 1
+            p1.last_match_idx = match_idx
+            p2.last_match_idx = match_idx
 
             # Update career stats
             total_frames = score1 + score2
@@ -119,6 +143,11 @@ class EloRating(RatingSystem):
                 p2.frames_played_1y += total_frames
                 p1.frames_won_1y += score1
                 p2.frames_won_1y += score2
+
+        # Record final ratings
+        for pname, p in players.items():
+            if p.rating_history and p.rating_history[-1][0] != "final":
+                p.rating_history.append(("final", round(p.rating), current_year))
 
     def generate_match_features(self, matches: pd.DataFrame) -> pd.DataFrame:
         """Generate feature DataFrame for a set of matches using current state.

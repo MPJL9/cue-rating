@@ -3,6 +3,13 @@
 Replaces the legacy O(T²·M) data_generation.ipynb with an O(T·M) single-pass
 approach. For each tournament, snapshots current player states, generates features,
 then updates the rating system with that tournament's results.
+
+Feature design: focuses on non-redundant, informative features:
+- Rating predictions (ELO + Glicko-2 frame/match probabilities)
+- Uncertainty (Glicko-2 RD)
+- Win rate differences (career, 1y, 3y) instead of raw counts
+- Head-to-head record
+- Inactivity and momentum
 """
 
 from __future__ import annotations
@@ -55,13 +62,28 @@ def generate_features(
     tournament_ids = list(matches["tournament_id"].unique())
     all_feature_rows = []
 
+    # Track head-to-head records incrementally: (p1, p2) -> [p1_wins, p2_wins]
+    h2h: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0])
+    match_counter = 0
+
     for t_idx, tid in enumerate(tournament_ids):
         tourn_matches = matches[matches["tournament_id"] == tid]
 
         if t_idx >= start_tournament_idx:
-            # Generate features using current state (before updating)
-            rows = _generate_tournament_features(tourn_matches, elo, glicko2)
+            rows = _generate_tournament_features(
+                tourn_matches, elo, glicko2, h2h, match_counter,
+            )
             all_feature_rows.extend(rows)
+
+        # Update h2h records and match counter
+        for row in tourn_matches.itertuples(index=False):
+            p1, p2 = row.player1, row.player2
+            key = tuple(sorted([p1, p2]))
+            if p1 == key[0]:
+                h2h[key][0] += 1
+            else:
+                h2h[key][1] += 1
+            match_counter += 1
 
         # Update both rating systems with this tournament
         elo.update(tourn_matches)
@@ -80,12 +102,25 @@ def generate_features(
     return df
 
 
+def _safe_ratio(num: int, denom: int) -> float:
+    """Compute ratio, returning 0.0 if denominator is 0."""
+    return num / denom if denom > 0 else 0.0
+
+
 def _generate_tournament_features(
     tourn_matches: pd.DataFrame,
     elo: EloRating,
     glicko2: Glicko2Rating,
+    h2h: dict[tuple[str, str], list[int]],
+    match_counter: int,
 ) -> list[dict]:
-    """Generate feature rows for one tournament's matches."""
+    """Generate feature rows for one tournament's matches.
+
+    Features are designed to be non-redundant:
+    - Predictions (probabilities) instead of raw ratings
+    - Win rate DIFFERENCES instead of raw counts for both players
+    - Head-to-head, momentum, and inactivity as new signals
+    """
     elo_players = elo.players
     g2_players = glicko2.players
     elo_default = elo.default_rating
@@ -113,40 +148,79 @@ def _generate_tournament_features(
         g2_fp = glicko2._frame_win_prob(gp1.rating, gp2.rating)
         g2_mp = glicko2.match_win_prob(g2_fp, best_of)
 
-        # Head-to-head (from ELO stats — same as Glicko-2 career stats)
+        # Win rate differences (non-redundant: difference instead of raw counts)
+        p1_match_wr = _safe_ratio(ep1.matches_won, ep1.matches_played)
+        p2_match_wr = _safe_ratio(ep2.matches_won, ep2.matches_played)
+        p1_frame_wr = _safe_ratio(ep1.frames_won, ep1.frames_played)
+        p2_frame_wr = _safe_ratio(ep2.frames_won, ep2.frames_played)
+        p1_1y_wr = _safe_ratio(ep1.frames_won_1y, ep1.frames_played_1y)
+        p2_1y_wr = _safe_ratio(ep2.frames_won_1y, ep2.frames_played_1y)
+        p1_3y_wr = _safe_ratio(ep1.frames_won_3y, ep1.frames_played_3y)
+        p2_3y_wr = _safe_ratio(ep2.frames_won_3y, ep2.frames_played_3y)
+
+        # Head-to-head
+        h2h_key = tuple(sorted([p1_name, p2_name]))
+        h2h_record = h2h.get(h2h_key, [0, 0])
+        if p1_name == h2h_key[0]:
+            p1_h2h_wins, p2_h2h_wins = h2h_record
+        else:
+            p2_h2h_wins, p1_h2h_wins = h2h_record
+        h2h_total = p1_h2h_wins + p2_h2h_wins
+        h2h_advantage = _safe_ratio(p1_h2h_wins, h2h_total) - 0.5 if h2h_total > 0 else 0.0
+
+        # Momentum: rating change over recent matches
+        p1_momentum = ep1.rating - ep1.prev_rating if ep1.prev_rating > 0 else 0.0
+        p2_momentum = ep2.rating - ep2.prev_rating if ep2.prev_rating > 0 else 0.0
+
+        # Inactivity: matches since last game (capped at 1000)
+        p1_inactivity = min(match_counter - ep1.last_match_idx, 1000) if ep1.last_match_idx > 0 else 1000
+        p2_inactivity = min(match_counter - ep2.last_match_idx, 1000) if ep2.last_match_idx > 0 else 1000
+
         features = {
             # Match info
             "player1": p1_name,
             "player2": p2_name,
             "best_of": best_of,
-            # ELO features
-            "player1_elo": round(ep1.rating),
-            "player2_elo": round(ep2.rating),
+            # === Rating predictions (4 features) ===
             "elo_frame_win_rate": elo_fp,
             "elo_match_win_rate": elo_mp,
-            # Glicko-2 features
-            "player1_glicko2": round(gp1.rating),
-            "player2_glicko2": round(gp2.rating),
-            "player1_rd": round(gp1.rd, 1) if isinstance(gp1, Glicko2PlayerState) else 350.0,
-            "player2_rd": round(gp2.rd, 1) if isinstance(gp2, Glicko2PlayerState) else 350.0,
             "glicko2_frame_win_rate": g2_fp,
             "glicko2_match_win_rate": g2_mp,
-            # Player 1 career stats (from ELO tracker)
+            # === Uncertainty (2 features) ===
+            "player1_rd": round(gp1.rd, 1) if isinstance(gp1, Glicko2PlayerState) else 350.0,
+            "player2_rd": round(gp2.rd, 1) if isinstance(gp2, Glicko2PlayerState) else 350.0,
+            # === Win rate differences (4 features, not raw counts) ===
+            "match_wr_diff": p1_match_wr - p2_match_wr,
+            "frame_wr_diff": p1_frame_wr - p2_frame_wr,
+            "form_1y_diff": p1_1y_wr - p2_1y_wr,
+            "form_3y_diff": p1_3y_wr - p2_3y_wr,
+            # === Experience (1 feature) ===
+            "experience_diff": ep1.matches_played - ep2.matches_played,
+            # === NEW: Head-to-head (2 features) ===
+            "h2h_advantage": h2h_advantage,
+            "h2h_matches": h2h_total,
+            # === NEW: Momentum (1 feature) ===
+            "momentum_diff": p1_momentum - p2_momentum,
+            # === NEW: Inactivity (1 feature) ===
+            "inactivity_diff": p2_inactivity - p1_inactivity,  # Positive = p1 more active
+            # === Raw ratings (kept for the web app / feature generation) ===
+            "player1_elo": round(ep1.rating),
+            "player2_elo": round(ep2.rating),
+            "player1_glicko2": round(gp1.rating),
+            "player2_glicko2": round(gp2.rating),
+            # === Raw stats (kept for backward compat, but NOT used in ML) ===
             "p1_matches_played": ep1.matches_played,
             "p1_matches_won": ep1.matches_won,
             "p1_frames_played": ep1.frames_played,
             "p1_frames_won": ep1.frames_won,
-            # Player 2 career stats
             "p2_matches_played": ep2.matches_played,
             "p2_matches_won": ep2.matches_won,
             "p2_frames_played": ep2.frames_played,
             "p2_frames_won": ep2.frames_won,
-            # Player 1 time-windowed stats
             "p1_frames_played_1_year": ep1.frames_played_1y,
             "p1_frames_won_1_year": ep1.frames_won_1y,
             "p1_frames_played_3_years": ep1.frames_played_3y,
             "p1_frames_won_3_years": ep1.frames_won_3y,
-            # Player 2 time-windowed stats
             "p2_frames_played_1_year": ep2.frames_played_1y,
             "p2_frames_won_1_year": ep2.frames_won_1y,
             "p2_frames_played_3_years": ep2.frames_played_3y,
@@ -154,7 +228,7 @@ def _generate_tournament_features(
             # Target variables
             "score1": score1,
             "score2": score2,
-            "match_result": 0,  # 0 = player1 wins (before swap)
+            "match_result": 0,
             "win_percentage": score1 / (score1 + score2),
             # Metadata
             "tournament_id": str(row.tournament_id),
@@ -189,6 +263,12 @@ def _apply_swap(df: pd.DataFrame, swap_mask: list[bool]) -> pd.DataFrame:
         ("score1", "score2"),
     ]
 
+    # Signed features that need to be negated on swap
+    negate_cols = [
+        "match_wr_diff", "frame_wr_diff", "form_1y_diff", "form_3y_diff",
+        "experience_diff", "h2h_advantage", "momentum_diff", "inactivity_diff",
+    ]
+
     mask = np.array(swap_mask)
     for col_a, col_b in swap_pairs:
         a_vals = df[col_a].values.copy()
@@ -203,5 +283,10 @@ def _apply_swap(df: pd.DataFrame, swap_mask: list[bool]) -> pd.DataFrame:
     df.loc[mask, "elo_match_win_rate"] = 1.0 - df.loc[mask, "elo_match_win_rate"]
     df.loc[mask, "glicko2_frame_win_rate"] = 1.0 - df.loc[mask, "glicko2_frame_win_rate"]
     df.loc[mask, "glicko2_match_win_rate"] = 1.0 - df.loc[mask, "glicko2_match_win_rate"]
+
+    # Negate signed difference features
+    for col in negate_cols:
+        if col in df.columns:
+            df.loc[mask, col] = -df.loc[mask, col]
 
     return df.reset_index(drop=True)

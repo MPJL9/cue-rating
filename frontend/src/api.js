@@ -6,32 +6,34 @@ async function fetchJSON(path) {
   return res.json()
 }
 
-export async function getRatings(system = 'elo', top = 50) {
-  return fetchJSON(`/ratings?system=${system}&top=${top}`)
-}
-
-export async function getPlayer(name) {
-  return fetchJSON(`/player/${encodeURIComponent(name)}`)
-}
-
-export async function predictMatch(player1, player2, bestOf) {
-  const res = await fetch(`${API_BASE}/predict`, {
+async function postJSON(path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ player1, player2, best_of: bestOf }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   return res.json()
 }
 
-export async function getComparison() {
-  return fetchJSON('/comparison')
-}
+export const getRatings = (system = 'elo', top = 100) =>
+  fetchJSON(`/ratings?system=${system}&top=${top}`)
 
-export async function searchPlayers(query) {
-  return fetchJSON(`/search?q=${encodeURIComponent(query)}`)
-}
+export const getPlayer = (name) =>
+  fetchJSON(`/player/${encodeURIComponent(name)}`)
 
-export async function getStats() {
-  return fetchJSON('/stats')
-}
+export const getPlayerHistory = (name) =>
+  fetchJSON(`/player/${encodeURIComponent(name)}/history`)
+
+export const predictMatch = (player1, player2, bestOf) =>
+  postJSON('/predict', { player1, player2, best_of: bestOf })
+
+export const getComparison = () => fetchJSON('/comparison')
+
+export const searchPlayers = (query) =>
+  fetchJSON(`/search?q=${encodeURIComponent(query)}`)
+
+export const getStats = () => fetchJSON('/stats')
+
+export const simulateTournament = (players, bestOf, simulations = 10000) =>
+  postJSON('/simulate', { players, best_of: bestOf, simulations })

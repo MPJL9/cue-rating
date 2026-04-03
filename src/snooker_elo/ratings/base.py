@@ -27,6 +27,12 @@ class PlayerState:
     matches_won_1y: int = 0
     frames_played_1y: int = 0
     frames_won_1y: int = 0
+    # Rating history: list of (tournament_id, rating) snapshots
+    rating_history: list = field(default_factory=list)
+    # Momentum: rating N matches ago (for computing rating change)
+    prev_rating: float = 0.0
+    # Last match index (for computing inactivity)
+    last_match_idx: int = 0
 
 
 class RatingSystem(ABC):

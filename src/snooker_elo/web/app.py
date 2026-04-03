@@ -99,3 +99,29 @@ def search_players(q: str = Query("", min_length=1)):
 def get_stats():
     """Get dataset statistics."""
     return engine.get_stats()
+
+
+@app.get("/api/player/{name}/history")
+def get_player_history(name: str):
+    """Get rating history for a player (for charts)."""
+    history = engine.get_rating_history(name)
+    if history is None:
+        return JSONResponse(status_code=404, content={"error": f"Player '{name}' not found"})
+    return history
+
+
+@app.post("/api/simulate")
+def simulate_tournament(body: dict):
+    """Monte Carlo tournament simulation.
+
+    Body: {"players": ["Name1", "Name2", ...], "best_of": 9, "simulations": 10000}
+    """
+    players = body.get("players", [])
+    best_of = int(body.get("best_of", 9))
+    n_sims = min(int(body.get("simulations", 10000)), 50000)
+
+    if len(players) < 2:
+        return JSONResponse(status_code=400, content={"error": "Need at least 2 players"})
+
+    result = engine.simulate_tournament(players, best_of, n_sims)
+    return result
