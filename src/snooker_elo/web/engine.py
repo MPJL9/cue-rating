@@ -417,36 +417,59 @@ class RatingEngine:
         }
 
     def get_recent_matches(self, limit: int = 50) -> dict:
-        """Get most recent matches with ELO predictions."""
-        recent = self.matches.tail(limit).iloc[::-1]  # Reverse for most recent first
+        """Get most recent matches grouped by tournament."""
+        # Get unique tournament IDs in reverse order (most recent first)
+        all_tids = list(self.matches["tournament_id"].unique())
+        recent_tids = all_tids[-limit:] if limit < len(all_tids) else all_tids
+        recent_tids = list(reversed(recent_tids))
 
-        matches_list = []
-        for _, row in recent.iterrows():
-            p1, p2 = row["player1"], row["player2"]
-            s1, s2, bo = int(row["score1"]), int(row["score2"]), int(row["best_of"])
+        tournaments = []
+        for tid in recent_tids:
+            tourn_df = self.matches[self.matches["tournament_id"] == tid]
+            year = int(tourn_df["year"].iloc[0])
+            n_matches = len(tourn_df)
 
-            fp = self.elo.predict_frame_win_prob(p1, p2)
-            mp = self.elo.match_win_prob(fp, bo)
+            # Compute prediction accuracy for this tournament
+            correct = 0
+            matches_list = []
+            for _, row in tourn_df.iterrows():
+                p1, p2 = row["player1"], row["player2"]
+                s1, s2, bo = int(row["score1"]), int(row["score2"]), int(row["best_of"])
 
-            # Was this an upset?
-            predicted_winner = p1 if mp > 0.5 else p2
-            actual_winner = p1  # player1 is always winner in raw data
-            upset = predicted_winner != actual_winner
+                fp = self.elo.predict_frame_win_prob(p1, p2)
+                mp = self.elo.match_win_prob(fp, bo)
 
-            matches_list.append({
-                "player1": p1,
-                "player2": p2,
-                "score1": s1,
-                "score2": s2,
-                "best_of": bo,
-                "year": int(row["year"]),
-                "elo_win_prob": round(mp, 3),
-                "upset": upset,
-                "p1_elo": round(self.elo.players.get(p1, type("", (), {"rating": 1000})).rating),
-                "p2_elo": round(self.elo.players.get(p2, type("", (), {"rating": 1000})).rating),
+                predicted_winner = p1 if mp > 0.5 else p2
+                upset = predicted_winner != p1  # p1 is always actual winner
+                if not upset:
+                    correct += 1
+
+                matches_list.append({
+                    "player1": p1,
+                    "player2": p2,
+                    "score1": s1,
+                    "score2": s2,
+                    "best_of": bo,
+                    "elo_win_prob": round(mp, 3),
+                    "upset": upset,
+                    "p1_elo": round(self.elo.players.get(
+                        p1, type("", (), {"rating": 1000})
+                    ).rating),
+                    "p2_elo": round(self.elo.players.get(
+                        p2, type("", (), {"rating": 1000})
+                    ).rating),
+                })
+
+            tournaments.append({
+                "tournament_id": str(tid),
+                "year": year,
+                "n_matches": n_matches,
+                "accuracy": round(correct / n_matches, 3) if n_matches > 0 else 0,
+                "upsets": n_matches - correct,
+                "matches": matches_list,
             })
 
-        return {"matches": matches_list, "total": len(matches_list)}
+        return {"tournaments": tournaments, "total": len(tournaments)}
 
     def get_prime_times(self, min_matches: int = 200) -> dict:
         """Find peak rating and prime years for experienced players."""

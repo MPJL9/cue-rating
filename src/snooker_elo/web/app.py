@@ -128,8 +128,8 @@ def simulate_tournament(body: dict):
 
 
 @app.get("/api/matches/recent")
-def get_recent_matches(limit: int = Query(50, ge=1, le=200)):
-    """Get most recent matches with predictions."""
+def get_recent_matches(limit: int = Query(30, ge=1, le=100)):
+    """Get recent tournaments with matches and predictions."""
     return engine.get_recent_matches(limit)
 
 

@@ -36,10 +36,11 @@ export default function PrimeTimes() {
         <div className="card-header">
           <h2>Peak Rating (Top 30)</h2>
         </div>
-        <ResponsiveContainer width="100%" height={500}>
-          <BarChart data={chartData} layout="vertical" margin={{ left: 90 }}>
+        <ResponsiveContainer width="100%" height={top30.length * 40 + 40}>
+          <BarChart data={chartData} layout="vertical" margin={{ left: 100, top: 10, bottom: 10 }}>
             <XAxis type="number" stroke="#71717a" fontSize={12} domain={[800, 'auto']} />
-            <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={11} width={90} />
+            <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={11} width={100}
+              interval={0} tick={{ fontSize: 11 }} />
             <Tooltip
               contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 6 }}
               formatter={(v, name, props) => {
@@ -47,8 +48,8 @@ export default function PrimeTimes() {
                 return [`${v}`, `${props.payload.fullName} (Current)`]
               }}
             />
-            <Bar dataKey="peak" fill="#22c55e" radius={[0, 4, 4, 0]} barSize={14} name="peak" />
-            <Bar dataKey="current" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={14} name="current" />
+            <Bar dataKey="peak" fill="#22c55e" radius={[0, 4, 4, 0]} barSize={12} name="peak" />
+            <Bar dataKey="current" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={12} name="current" />
           </BarChart>
         </ResponsiveContainer>
         <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', marginTop: '0.5rem', fontSize: '0.8rem' }}>
