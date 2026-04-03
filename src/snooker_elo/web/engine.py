@@ -29,6 +29,7 @@ class RatingEngine:
         self.glicko2: Glicko2Rating | None = None
         self._player_names: list[str] = []
         self._comparison_cache: dict | None = None
+        self._tournament_meta: dict[str, dict] = {}
 
     def initialize(self):
         """Load data and compute all ratings. Called once at startup."""
@@ -36,6 +37,21 @@ class RatingEngine:
         start = time.time()
         self.matches = load_matches(self.data_path)
         print(f"  {len(self.matches)} matches loaded in {time.time()-start:.1f}s")
+
+        # Load tournament metadata
+        from pathlib import Path
+        tourn_path = Path(self.data_path).parent / "tournaments.csv"
+        if tourn_path.exists():
+            tdf = pd.read_csv(tourn_path, dtype={"tournament_id": str})
+            for _, row in tdf.iterrows():
+                self._tournament_meta[str(row["tournament_id"])] = {
+                    "name": str(row.get("name", "")),
+                    "status": str(row.get("status", "")),
+                    "category": str(row.get("category", "")),
+                    "city": str(row.get("city", "")),
+                    "country": str(row.get("country", "")),
+                }
+            print(f"  {len(self._tournament_meta)} tournament metadata entries loaded")
 
         print("Computing ELO ratings...")
         start = time.time()
@@ -460,8 +476,14 @@ class RatingEngine:
                     ).rating),
                 })
 
+            meta = self._tournament_meta.get(str(tid), {})
             tournaments.append({
                 "tournament_id": str(tid),
+                "name": meta.get("name", f"Tournament #{tid}"),
+                "status": meta.get("status", ""),
+                "category": meta.get("category", ""),
+                "city": meta.get("city", ""),
+                "country": meta.get("country", ""),
                 "year": year,
                 "n_matches": n_matches,
                 "accuracy": round(correct / n_matches, 3) if n_matches > 0 else 0,

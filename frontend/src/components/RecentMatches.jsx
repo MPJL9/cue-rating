@@ -48,11 +48,12 @@ export default function RecentMatches() {
         <table>
           <thead>
             <tr>
-              <th>Tournament ID</th>
+              <th>Tournament</th>
+              <th>Category</th>
+              <th>Location</th>
               <th>Year</th>
               <th>Matches</th>
               <th>ELO Accuracy</th>
-              <th>Upsets</th>
               <th></th>
             </tr>
           </thead>
@@ -63,26 +64,37 @@ export default function RecentMatches() {
                   onClick={() => setExpandedId(expandedId === t.tournament_id ? null : t.tournament_id)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <td style={{ fontWeight: 500 }}>#{t.tournament_id}</td>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>{t.name}</div>
+                  </td>
+                  <td>
+                    <span className={`badge ${
+                      t.category === 'Ranking' ? 'badge-green' :
+                      t.category === 'Invitational' ? 'badge-blue' : 'badge-gray'
+                    }`}>
+                      {t.category || '—'}
+                    </span>
+                  </td>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    {[t.city, t.country].filter(Boolean).join(', ') || '—'}
+                  </td>
                   <td>{t.year}</td>
                   <td>{t.n_matches}</td>
                   <td>
                     <span className={`badge ${t.accuracy > 0.7 ? 'badge-green' : t.accuracy > 0.6 ? 'badge-blue' : 'badge-gray'}`}>
                       {(t.accuracy * 100).toFixed(0)}%
                     </span>
-                  </td>
-                  <td>
                     {t.upsets > 0 && (
-                      <span className="badge badge-red">{t.upsets}</span>
+                      <span className="badge badge-red" style={{ marginLeft: 6 }}>{t.upsets} upsets</span>
                     )}
                   </td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                    {expandedId === t.tournament_id ? '▲ collapse' : '▼ expand'}
+                    {expandedId === t.tournament_id ? '▲' : '▼'}
                   </td>
                 </tr>
                 {expandedId === t.tournament_id && (
                   <tr>
-                    <td colSpan={6} style={{ padding: 0, background: 'var(--bg)' }}>
+                    <td colSpan={7} style={{ padding: 0, background: 'var(--bg)' }}>
                       <MatchTable matches={t.matches} />
                     </td>
                   </tr>
