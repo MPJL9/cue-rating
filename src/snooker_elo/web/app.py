@@ -7,7 +7,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from snooker_elo.web.engine import RatingEngine
 
@@ -150,3 +151,32 @@ def get_recent_matches(limit: int = Query(30, ge=1, le=100)):
 def get_prime_times(min_matches: int = Query(200, ge=50, le=1000)):
     """Get peak rating and prime years for experienced players."""
     return engine.get_prime_times(min_matches)
+
+
+# ── Serve React frontend (built files) ──
+
+def _find_frontend_dist() -> Path | None:
+    """Find the built frontend dist/ directory."""
+    candidates = [
+        Path(__file__).parents[3] / "frontend" / "dist",
+        Path.cwd() / "frontend" / "dist",
+        Path("/opt/render/project/src/frontend/dist"),
+    ]
+    for p in candidates:
+        if p.is_dir() and (p / "index.html").exists():
+            return p
+    return None
+
+
+_dist = _find_frontend_dist()
+if _dist:
+    # Serve static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=str(_dist / "assets")), name="assets")
+
+    # Catch-all: serve index.html for any non-API route (SPA routing)
+    @app.get("/{path:path}")
+    def serve_spa(path: str):
+        file_path = _dist / path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(_dist / "index.html"))
