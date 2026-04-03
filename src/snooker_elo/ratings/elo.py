@@ -47,8 +47,9 @@ class EloRating(RatingSystem):
         total = score1 + score2
         e1 = 1.0 / (1.0 + np.exp((r2 - r1) / divisor))
         s1 = score1 / total
-        r1_new = round(r1 + k * total * (s1 - e1))
-        r2_new = round(r2 + k * total * (e1 - s1))
+        # Keep full float precision — only round for display, never during computation
+        r1_new = r1 + k * total * (s1 - e1)
+        r2_new = r2 + k * total * (e1 - s1)
         return r1_new, r2_new
 
     def update(self, matches: pd.DataFrame) -> None:

@@ -49,11 +49,10 @@ class TestCalculateNewElo:
         # Manual calculation: R1=1200, R2=1000, score 5-4, K=8, divisor=400
         # E1 = 1/(1+exp((1000-1200)/400)) = 1/(1+exp(-0.5)) ≈ 0.6225
         # S1 = 5/9 ≈ 0.5556
-        # R1_new = round(1200 + 8*9*(0.5556 - 0.6225)) = round(1200 + 72*(-0.0669))
-        #        = round(1200 - 4.82) = round(1195.18) = 1195
+        # R1_new = 1200 + 8*9*(0.5556 - 0.6225) = 1200 - 4.82 ≈ 1195.18
         r1_new, r2_new = EloRating._calculate_new_elo(1200, 1000, 5, 4, 8, 400)
-        assert r1_new == 1195
-        assert r2_new == 1005
+        assert r1_new == pytest.approx(1195.18, abs=0.1)
+        assert r2_new == pytest.approx(1004.82, abs=0.1)
 
     def test_blowout_large_update(self):
         # 9-0 blowout: winner should gain more than a close match
