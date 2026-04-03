@@ -2,6 +2,8 @@
 
 ELO and Glicko-2 rating systems for professional snooker, with ML match prediction models and a web application.
 
+> This project grew out of [2025-Summer-Erdos-Elo-Project](https://github.com/PubohH/2025-Summer-Erdos-Elo-Project), a summer 2025 project at the Erdos Institute. The original project applied a basic ELO system to snooker. This repo is a complete rewrite with Glicko-2, MLE-optimized parameters, an incremental pipeline, and a full-stack web app.
+
 ## Results
 
 **115,630 matches** from 1982-2025 across **1,085 tournaments** and **3,832 players**.
