@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from snooker_elo.web.engine import RatingEngine
 
 engine: RatingEngine | None = None
+engine_ready = threading.Event()
 
 
 def _find_data_dir() -> Path:
@@ -28,15 +30,22 @@ def _find_data_dir() -> Path:
     raise FileNotFoundError(f"Cannot find data/raw/matches.csv. Tried: {candidates}")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Initialize rating engines on startup."""
+def _init_engine():
+    """Initialize engine in background thread."""
     global engine
     data_dir = _find_data_dir()
     engine = RatingEngine(str(data_dir / "matches.csv"))
     engine.initialize()
+    engine_ready.set()
+    print("Engine ready — all endpoints active")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start server immediately, compute ratings in background."""
+    thread = threading.Thread(target=_init_engine, daemon=True)
+    thread.start()
     yield
-    engine = None
 
 
 app = FastAPI(
@@ -55,12 +64,36 @@ app.add_middleware(
 )
 
 
+def _check_ready():
+    """Return error response if engine not ready yet."""
+    if not engine_ready.is_set():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "loading",
+                "message": "Computing ratings... Please wait ~30s and refresh.",
+            },
+        )
+    return None
+
+
+@app.get("/api/status")
+def get_status():
+    """Check if engine is ready."""
+    if engine_ready.is_set():
+        return {"status": "ready"}
+    return JSONResponse(status_code=503, content={"status": "loading"})
+
+
 @app.get("/api/ratings")
 def get_ratings(
     system: str = Query("elo", pattern="^(elo|glicko2)$"),
     top: int = Query(50, ge=1, le=500),
 ):
     """Get top player ratings."""
+    err = _check_ready()
+    if err:
+        return err
     ratings = engine.get_ratings(system, top)
     return {"system": system, "players": ratings}
 
@@ -68,6 +101,9 @@ def get_ratings(
 @app.get("/api/player/{name}")
 def get_player(name: str):
     """Get detailed player profile."""
+    err = _check_ready()
+    if err:
+        return err
     player = engine.get_player(name)
     if player is None:
         return JSONResponse(status_code=404, content={"error": f"Player '{name}' not found"})
@@ -80,6 +116,9 @@ def predict_match(body: dict):
 
     Body: {"player1": "...", "player2": "...", "best_of": 9}
     """
+    err = _check_ready()
+    if err:
+        return err
     player1 = body.get("player1", "")
     player2 = body.get("player2", "")
     best_of = int(body.get("best_of", 9))
@@ -99,12 +138,18 @@ def predict_match(body: dict):
 @app.get("/api/comparison")
 def get_comparison():
     """Get ELO vs Glicko-2 comparison metrics."""
+    err = _check_ready()
+    if err:
+        return err
     return engine.get_comparison()
 
 
 @app.get("/api/search")
 def search_players(q: str = Query("", min_length=1)):
     """Search players by name prefix."""
+    err = _check_ready()
+    if err:
+        return err
     results = engine.search_players(q)
     return {"results": results[:20]}
 
@@ -112,12 +157,18 @@ def search_players(q: str = Query("", min_length=1)):
 @app.get("/api/stats")
 def get_stats():
     """Get dataset statistics."""
+    err = _check_ready()
+    if err:
+        return err
     return engine.get_stats()
 
 
 @app.get("/api/player/{name}/history")
 def get_player_history(name: str):
     """Get rating history for a player (for charts)."""
+    err = _check_ready()
+    if err:
+        return err
     history = engine.get_rating_history(name)
     if history is None:
         return JSONResponse(status_code=404, content={"error": f"Player '{name}' not found"})
@@ -130,6 +181,9 @@ def simulate_tournament(body: dict):
 
     Body: {"players": ["Name1", "Name2", ...], "best_of": 9, "simulations": 10000}
     """
+    err = _check_ready()
+    if err:
+        return err
     players = body.get("players", [])
     best_of = int(body.get("best_of", 9))
     n_sims = min(int(body.get("simulations", 10000)), 50000)
@@ -144,12 +198,18 @@ def simulate_tournament(body: dict):
 @app.get("/api/matches/recent")
 def get_recent_matches(limit: int = Query(30, ge=1, le=100)):
     """Get recent tournaments with matches and predictions."""
+    err = _check_ready()
+    if err:
+        return err
     return engine.get_recent_matches(limit)
 
 
 @app.get("/api/prime-times")
 def get_prime_times(min_matches: int = Query(200, ge=50, le=1000)):
     """Get peak rating and prime years for experienced players."""
+    err = _check_ready()
+    if err:
+        return err
     return engine.get_prime_times(min_matches)
 
 
