@@ -1,0 +1,505 @@
+{
+  "results": [
+    {
+      "model": "Gradient Boosting",
+      "features": "Ratings combined (6)",
+      "n_features": 6,
+      "accuracy": 0.7024,
+      "log_loss": 0.5623,
+      "brier_score": 0.1918,
+      "ece": 0.0111
+    },
+    {
+      "model": "Logistic Regression",
+      "features": "All features (35)",
+      "n_features": 35,
+      "accuracy": 0.7005,
+      "log_loss": 0.565,
+      "brier_score": 0.1921,
+      "ece": 0.0201
+    },
+    {
+      "model": "Logistic Regression",
+      "features": "Ratings combined (6)",
+      "n_features": 6,
+      "accuracy": 0.6993,
+      "log_loss": 0.5678,
+      "brier_score": 0.1931,
+      "ece": 0.021
+    },
+    {
+      "model": "Gradient Boosting",
+      "features": "All features (35)",
+      "n_features": 35,
+      "accuracy": 0.6989,
+      "log_loss": 0.5628,
+      "brier_score": 0.1917,
+      "ece": 0.0143
+    },
+    {
+      "model": "Logistic Regression",
+      "features": "Clean features (15)",
+      "n_features": 15,
+      "accuracy": 0.6988,
+      "log_loss": 0.5676,
+      "brier_score": 0.193,
+      "ece": 0.0201
+    },
+    {
+      "model": "Gradient Boosting",
+      "features": "Clean features (15)",
+      "n_features": 15,
+      "accuracy": 0.6983,
+      "log_loss": 0.5639,
+      "brier_score": 0.1921,
+      "ece": 0.0158
+    },
+    {
+      "model": "Gradient Boosting",
+      "features": "Glicko-2 only (4)",
+      "n_features": 4,
+      "accuracy": 0.6965,
+      "log_loss": 0.5624,
+      "brier_score": 0.1918,
+      "ece": 0.0139
+    },
+    {
+      "model": "Random Forest",
+      "features": "Glicko-2 only (4)",
+      "n_features": 4,
+      "accuracy": 0.6954,
+      "log_loss": 0.5657,
+      "brier_score": 0.193,
+      "ece": 0.0138
+    },
+    {
+      "model": "Random Forest",
+      "features": "Ratings combined (6)",
+      "n_features": 6,
+      "accuracy": 0.6953,
+      "log_loss": 0.5662,
+      "brier_score": 0.1931,
+      "ece": 0.0159
+    },
+    {
+      "model": "Random Forest",
+      "features": "Clean features (15)",
+      "n_features": 15,
+      "accuracy": 0.6924,
+      "log_loss": 0.5725,
+      "brier_score": 0.1955,
+      "ece": 0.0156
+    },
+    {
+      "model": "Logistic Regression",
+      "features": "Glicko-2 only (4)",
+      "n_features": 4,
+      "accuracy": 0.6918,
+      "log_loss": 0.5737,
+      "brier_score": 0.1952,
+      "ece": 0.0269
+    },
+    {
+      "model": "Random Forest",
+      "features": "All features (35)",
+      "n_features": 35,
+      "accuracy": 0.6915,
+      "log_loss": 0.5764,
+      "brier_score": 0.197,
+      "ece": 0.0106
+    },
+    {
+      "model": "Random Forest",
+      "features": "ELO only (2)",
+      "n_features": 2,
+      "accuracy": 0.6883,
+      "log_loss": 0.5767,
+      "brier_score": 0.1979,
+      "ece": 0.0227
+    },
+    {
+      "model": "Logistic Regression",
+      "features": "ELO only (2)",
+      "n_features": 2,
+      "accuracy": 0.6873,
+      "log_loss": 0.5845,
+      "brier_score": 0.2003,
+      "ece": 0.0169
+    },
+    {
+      "model": "Gradient Boosting",
+      "features": "ELO only (2)",
+      "n_features": 2,
+      "accuracy": 0.6847,
+      "log_loss": 0.5775,
+      "brier_score": 0.1982,
+      "ece": 0.0155
+    },
+    {
+      "model": "Pure ELO",
+      "features": "\u2014",
+      "n_features": 0,
+      "accuracy": 0.6839,
+      "log_loss": 0.5863,
+      "brier_score": 0.2013,
+      "ece": 0.0112
+    },
+    {
+      "model": "Pure Glicko-2",
+      "features": "\u2014",
+      "n_features": 0,
+      "accuracy": 0.6798,
+      "log_loss": 0.5918,
+      "brier_score": 0.2024,
+      "ece": 0.0494
+    },
+    {
+      "model": "Coin flip",
+      "features": "\u2014",
+      "n_features": 0,
+      "accuracy": 0.5,
+      "log_loss": 0.6931,
+      "brier_score": 0.25,
+      "ece": 0.0
+    }
+  ],
+  "calibration": {
+    "Gradient Boosting | Ratings combined (6)": {
+      "centers": [
+        0.05,
+        0.15000000000000002,
+        0.25,
+        0.35000000000000003,
+        0.45,
+        0.55,
+        0.6500000000000001,
+        0.75,
+        0.8500000000000001,
+        0.95
+      ],
+      "actual": [
+        0.046296296296296294,
+        0.14969135802469136,
+        0.27899686520376177,
+        0.366369710467706,
+        0.44535840188014103,
+        0.5485592315901814,
+        0.6349726775956284,
+        0.7332339791356185,
+        0.8643031784841075,
+        0.9512195121951219
+      ],
+      "counts": [
+        324,
+        648,
+        638,
+        898,
+        851,
+        937,
+        915,
+        671,
+        818,
+        205
+      ]
+    },
+    "Gradient Boosting | All features (35)": {
+      "centers": [
+        0.05,
+        0.15000000000000002,
+        0.25,
+        0.35000000000000003,
+        0.45,
+        0.55,
+        0.6500000000000001,
+        0.75,
+        0.8500000000000001,
+        0.95
+      ],
+      "actual": [
+        0.03515625,
+        0.14634146341463414,
+        0.2766295707472178,
+        0.3641364136413641,
+        0.45381062355658197,
+        0.5294117647058824,
+        0.6449579831932774,
+        0.7260869565217392,
+        0.8737623762376238,
+        0.95
+      ],
+      "counts": [
+        256,
+        697,
+        629,
+        909,
+        866,
+        918,
+        952,
+        690,
+        808,
+        180
+      ]
+    },
+    "Logistic Regression | All features (35)": {
+      "centers": [
+        0.05,
+        0.15000000000000002,
+        0.25,
+        0.35000000000000003,
+        0.45,
+        0.55,
+        0.6500000000000001,
+        0.75,
+        0.8500000000000001,
+        0.95
+      ],
+      "actual": [
+        0.042682926829268296,
+        0.12550066755674233,
+        0.28263473053892213,
+        0.3624511082138201,
+        0.4632768361581921,
+        0.5418552036199095,
+        0.6073232323232324,
+        0.7608695652173914,
+        0.8675324675324675,
+        0.9135135135135135
+      ],
+      "counts": [
+        164,
+        749,
+        835,
+        767,
+        885,
+        884,
+        792,
+        874,
+        770,
+        185
+      ]
+    },
+    "Pure ELO": {
+      "centers": [
+        0.05,
+        0.15000000000000002,
+        0.25,
+        0.35000000000000003,
+        0.45,
+        0.55,
+        0.6500000000000001,
+        0.75,
+        0.8500000000000001,
+        0.95
+      ],
+      "actual": [
+        0.07718120805369127,
+        0.15473887814313347,
+        0.28444444444444444,
+        0.3488372093023256,
+        0.45200698080279234,
+        0.5623916811091855,
+        0.6473429951690821,
+        0.7489597780859917,
+        0.8379446640316206,
+        0.8916083916083916
+      ],
+      "counts": [
+        298,
+        517,
+        675,
+        774,
+        1146,
+        1154,
+        828,
+        721,
+        506,
+        286
+      ]
+    },
+    "Pure Glicko-2": {
+      "centers": [
+        0.05,
+        0.15000000000000002,
+        0.25,
+        0.35000000000000003,
+        0.45,
+        0.55,
+        0.6500000000000001,
+        0.75,
+        0.8500000000000001,
+        0.95
+      ],
+      "actual": [
+        0.11188811188811189,
+        0.21644295302013422,
+        0.3061797752808989,
+        0.4037940379403794,
+        0.48982188295165396,
+        0.5309941520467836,
+        0.587696335078534,
+        0.7223756906077348,
+        0.7819063004846527,
+        0.8961038961038961
+      ],
+      "counts": [
+        572,
+        596,
+        712,
+        738,
+        786,
+        855,
+        764,
+        724,
+        619,
+        539
+      ]
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "elo_match_win_rate",
+      "importance": 0.4566
+    },
+    {
+      "feature": "glicko2_match_win_rate",
+      "importance": 0.2888
+    },
+    {
+      "feature": "player1_rd",
+      "importance": 0.0352
+    },
+    {
+      "feature": "player2_rd",
+      "importance": 0.0282
+    },
+    {
+      "feature": "elo_frame_win_rate",
+      "importance": 0.0271
+    },
+    {
+      "feature": "glicko2_frame_win_rate",
+      "importance": 0.0201
+    },
+    {
+      "feature": "match_wr_diff",
+      "importance": 0.0121
+    },
+    {
+      "feature": "form_1y_diff",
+      "importance": 0.0107
+    },
+    {
+      "feature": "player2_glicko2",
+      "importance": 0.01
+    },
+    {
+      "feature": "momentum_diff",
+      "importance": 0.0098
+    },
+    {
+      "feature": "form_3y_diff",
+      "importance": 0.0097
+    },
+    {
+      "feature": "frame_wr_diff",
+      "importance": 0.0091
+    },
+    {
+      "feature": "player1_glicko2",
+      "importance": 0.0078
+    },
+    {
+      "feature": "p2_matches_won",
+      "importance": 0.0066
+    },
+    {
+      "feature": "player1_elo",
+      "importance": 0.0065
+    },
+    {
+      "feature": "p1_frames_won",
+      "importance": 0.0054
+    },
+    {
+      "feature": "experience_diff",
+      "importance": 0.0053
+    },
+    {
+      "feature": "player2_elo",
+      "importance": 0.005
+    },
+    {
+      "feature": "p1_frames_played_3_years",
+      "importance": 0.005
+    },
+    {
+      "feature": "p2_matches_played",
+      "importance": 0.0047
+    },
+    {
+      "feature": "p1_frames_played_1_year",
+      "importance": 0.0041
+    },
+    {
+      "feature": "p1_frames_played",
+      "importance": 0.0036
+    },
+    {
+      "feature": "p1_matches_played",
+      "importance": 0.0035
+    },
+    {
+      "feature": "p2_frames_played_1_year",
+      "importance": 0.0032
+    },
+    {
+      "feature": "h2h_matches",
+      "importance": 0.0031
+    },
+    {
+      "feature": "p1_matches_won",
+      "importance": 0.0031
+    },
+    {
+      "feature": "p2_frames_won_3_years",
+      "importance": 0.0025
+    },
+    {
+      "feature": "p2_frames_won_1_year",
+      "importance": 0.0024
+    },
+    {
+      "feature": "p2_frames_played",
+      "importance": 0.0023
+    },
+    {
+      "feature": "h2h_advantage",
+      "importance": 0.0022
+    },
+    {
+      "feature": "p1_frames_won_3_years",
+      "importance": 0.0019
+    },
+    {
+      "feature": "p2_frames_won",
+      "importance": 0.0018
+    },
+    {
+      "feature": "p2_frames_played_3_years",
+      "importance": 0.0014
+    },
+    {
+      "feature": "p1_frames_won_1_year",
+      "importance": 0.0013
+    },
+    {
+      "feature": "inactivity_diff",
+      "importance": 0.0
+    }
+  ],
+  "dataset": {
+    "train": 27616,
+    "test": 6905,
+    "total_matches": 34521
+  }
+}
