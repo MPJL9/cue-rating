@@ -10,13 +10,11 @@ import random
 import time
 from math import comb
 
-import numpy as np
 import pandas as pd
 
 from snooker_elo.data.loader import load_matches
-from snooker_elo.ratings.base import RatingSystem
 from snooker_elo.ratings.elo import EloRating
-from snooker_elo.ratings.glicko2 import Glicko2Rating, Glicko2PlayerState
+from snooker_elo.ratings.glicko2 import Glicko2PlayerState, Glicko2Rating
 
 
 class RatingEngine:
@@ -179,7 +177,6 @@ class RatingEngine:
 
         # Score probabilities for ELO
         win_cond = (best_of + 1) // 2
-        from math import comb
         score_probs = []
         for s1 in range(win_cond, best_of + 1):
             s2 = s1 - win_cond
@@ -240,10 +237,11 @@ class RatingEngine:
         for name in self._player_names:
             if name in self.elo.players and name in self.glicko2.players:
                 ep = self.elo.players[name]
-                gp = self.glicko2.players[name]
                 if ep.matches_played >= 50:
-                    elo_rank = list(elo_ratings.index).index(name) + 1 if name in elo_ratings.index else 9999
-                    g2_rank = list(g2_ratings.index).index(name) + 1 if name in g2_ratings.index else 9999
+                    in_elo = name in elo_ratings.index
+                    in_g2 = name in g2_ratings.index
+                    elo_rank = list(elo_ratings.index).index(name) + 1 if in_elo else 9999
+                    g2_rank = list(g2_ratings.index).index(name) + 1 if in_g2 else 9999
                     diff = abs(elo_rank - g2_rank)
                     if diff > 10:
                         disagreements.append({

@@ -3,9 +3,7 @@
 import pandas as pd
 import pytest
 
-from snooker_elo.features.generator import generate_features, _apply_swap
-from snooker_elo.ratings.elo import EloRating
-from snooker_elo.ratings.glicko2 import Glicko2Rating
+from snooker_elo.features.generator import _apply_swap, generate_features
 
 
 def _make_matches(*rows):

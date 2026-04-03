@@ -17,9 +17,9 @@ engine: RatingEngine | None = None
 def _find_data_dir() -> Path:
     """Find the data/raw/ directory, works both locally and on Render."""
     candidates = [
-        Path(__file__).parents[3] / "data" / "raw",   # Local: src/snooker_elo/web/app.py → repo root
-        Path.cwd() / "data" / "raw",                  # Render: cwd is repo root
-        Path("/opt/render/project/src/data/raw"),      # Render explicit path
+        Path(__file__).parents[3] / "data" / "raw",  # Local dev
+        Path.cwd() / "data" / "raw",                 # Render: cwd is repo root
+        Path("/opt/render/project/src/data/raw"),     # Render explicit
     ]
     for p in candidates:
         if (p / "matches.csv").exists():

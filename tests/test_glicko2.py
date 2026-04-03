@@ -1,11 +1,10 @@
 """Tests for Glicko-2 rating system."""
 
-import math
 
 import pandas as pd
 import pytest
 
-from snooker_elo.ratings.glicko2 import Glicko2Rating, Glicko2PlayerState, MU_SCALE
+from snooker_elo.ratings.glicko2 import Glicko2PlayerState, Glicko2Rating
 
 
 def _make_matches(*rows):

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
+
 def _find_default_path() -> Path:
     """Find matches.csv, works both locally and on Render."""
     candidates = [

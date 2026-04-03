@@ -13,13 +13,11 @@ from __future__ import annotations
 
 import math
 from copy import copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-import numpy as np
 import pandas as pd
 
 from snooker_elo.ratings.base import PlayerState, RatingSystem
-
 
 # Glicko-2 scaling constants
 MU_SCALE = 173.7178  # Convert between Glicko-1 and Glicko-2 scale

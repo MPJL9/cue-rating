@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from snooker_elo.evaluation.metrics import compute_all_metrics, calibration_bins
+from snooker_elo.evaluation.metrics import compute_all_metrics
 from snooker_elo.ratings.elo import EloRating
 from snooker_elo.ratings.glicko2 import Glicko2Rating
 
@@ -157,9 +157,7 @@ def format_comparison_table(results: dict) -> str:
         if key in elo and key in g2:
             e_val = elo[key]
             g_val = g2[key]
-            marker = ""
             if higher_better:
-                marker = " *" if e_val > g_val else (" *" if g_val > e_val else "")
                 if e_val > g_val:
                     e_str = f"{e_val:.4f} *"
                     g_str = f"{g_val:.4f}"

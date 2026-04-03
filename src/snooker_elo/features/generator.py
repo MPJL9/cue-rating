@@ -16,14 +16,13 @@ from __future__ import annotations
 
 import random
 from collections import defaultdict
-from copy import copy
 
 import numpy as np
 import pandas as pd
 
-from snooker_elo.ratings.base import PlayerState, RatingSystem
+from snooker_elo.ratings.base import PlayerState
 from snooker_elo.ratings.elo import EloRating
-from snooker_elo.ratings.glicko2 import Glicko2Rating, Glicko2PlayerState
+from snooker_elo.ratings.glicko2 import Glicko2PlayerState, Glicko2Rating
 
 
 def generate_features(
@@ -173,8 +172,10 @@ def _generate_tournament_features(
         p2_momentum = ep2.rating - ep2.prev_rating if ep2.prev_rating > 0 else 0.0
 
         # Inactivity: matches since last game (capped at 1000)
-        p1_inactivity = min(match_counter - ep1.last_match_idx, 1000) if ep1.last_match_idx > 0 else 1000
-        p2_inactivity = min(match_counter - ep2.last_match_idx, 1000) if ep2.last_match_idx > 0 else 1000
+        p1_inact = ep1.last_match_idx
+        p1_inactivity = min(match_counter - p1_inact, 1000) if p1_inact > 0 else 1000
+        p2_inact = ep2.last_match_idx
+        p2_inactivity = min(match_counter - p2_inact, 1000) if p2_inact > 0 else 1000
 
         features = {
             # Match info

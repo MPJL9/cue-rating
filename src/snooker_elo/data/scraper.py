@@ -205,7 +205,7 @@ def scrape_new_matches(
                     all_new.append(df)
                     print(f"    -> {len(df)} matches")
                 else:
-                    print(f"    -> No matches found")
+                    print("    -> No matches found")
             except Exception as e:
                 print(f"    -> Error: {e}")
 
