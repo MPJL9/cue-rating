@@ -20,4 +20,3 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check src/ tests/
       - run: pytest --cov=snooker_elo -v
-        working-directory: ${{ github.workspace }}
