@@ -1,0 +1,241 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0a0a0a;
+  color: #e5e5e5;
+  line-height: 1.6;
+}
+
+a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Layout */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav {
+  background: #111;
+  border-bottom: 1px solid #222;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  gap: 2rem;
+}
+.nav-brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #22c55e;
+}
+.nav a {
+  color: #999;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.nav a:hover, .nav a.active {
+  color: #fff;
+  text-decoration: none;
+}
+
+.main {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  width: 100%;
+}
+
+/* Cards */
+.card {
+  background: #141414;
+  border: 1px solid #222;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.card h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #1f1f1f;
+}
+th {
+  color: #888;
+  font-weight: 500;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+tr:hover td {
+  background: #1a1a1a;
+}
+
+/* Buttons & Inputs */
+button {
+  background: #22c55e;
+  color: #000;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+button:hover {
+  background: #16a34a;
+}
+
+input, select {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #e5e5e5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: #22c55e;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.badge-green { background: #052e16; color: #22c55e; }
+.badge-blue { background: #0c1a3d; color: #60a5fa; }
+.badge-gray { background: #1a1a1a; color: #888; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #222;
+}
+.tab {
+  padding: 0.5rem 1.2rem;
+  cursor: pointer;
+  color: #888;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+  background: none;
+  border-radius: 0;
+}
+.tab:hover { color: #ccc; background: none; }
+.tab.active {
+  color: #22c55e;
+  border-bottom-color: #22c55e;
+  background: none;
+}
+
+/* Prediction page */
+.predict-form {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+.predict-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+.predict-form input, .predict-form select {
+  min-width: 200px;
+}
+
+.prob-bar {
+  display: flex;
+  height: 32px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+.prob-bar-p1 {
+  background: #22c55e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.prob-bar-p2 {
+  background: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Comparison */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.metric-card {
+  background: #1a1a1a;
+  border-radius: 6px;
+  padding: 1rem;
+  text-align: center;
+}
+.metric-card .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #22c55e;
+}
+.metric-card .label {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 0.3rem;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav { padding: 0 1rem; gap: 1rem; }
+  .main { padding: 1rem; }
+  .predict-form { flex-direction: column; }
+  .predict-form input, .predict-form select { min-width: 100%; }
+}
