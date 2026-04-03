@@ -68,6 +68,14 @@ class RatingEngine:
         self._player_names = sorted(all_names)
         print(f"  {len(self._player_names)} players indexed")
 
+        # Precompute slow endpoints
+        print("Precomputing caches...")
+        start = time.time()
+        self._recent_cache = self._compute_recent_matches(30)
+        self._comparison_cache = self._compute_comparison()
+        self._prime_cache = self._compute_prime_times(200)
+        print(f"  Caches built in {time.time()-start:.2f}s")
+
     def get_ratings(self, system: str = "elo", top: int = 50) -> list[dict]:
         """Get top-N player ratings for a given system."""
         if system == "elo":
@@ -219,11 +227,11 @@ class RatingEngine:
         }
 
     def get_comparison(self) -> dict:
-        """Get cached ELO vs Glicko-2 comparison."""
-        if self._comparison_cache is not None:
-            return self._comparison_cache
+        """Return cached comparison."""
+        return self._comparison_cache
 
-        # Simple comparison based on precomputed ratings
+    def _compute_comparison(self) -> dict:
+        """Compute ELO vs Glicko-2 comparison (called once at startup)."""
         elo_ratings = self.elo.get_ratings()
         g2_ratings = self.glicko2.get_ratings()
 
@@ -253,7 +261,7 @@ class RatingEngine:
 
         disagreements.sort(key=lambda x: x["rank_diff"], reverse=True)
 
-        self._comparison_cache = {
+        return {
             "top20_overlap": overlap,
             "total_players": len(self._player_names),
             "biggest_disagreements": disagreements[:10],
@@ -263,7 +271,6 @@ class RatingEngine:
                            "RD provides uncertainty estimates.",
             },
         }
-        return self._comparison_cache
 
     def search_players(self, query: str) -> list[dict]:
         """Search players by name (case-insensitive prefix match)."""
@@ -430,8 +437,12 @@ class RatingEngine:
             "players": players_result,
         }
 
-    def get_recent_matches(self, limit: int = 50) -> dict:
-        """Get most recent matches grouped by tournament."""
+    def get_recent_matches(self, limit: int = 30) -> dict:
+        """Return cached recent matches."""
+        return self._recent_cache
+
+    def _compute_recent_matches(self, limit: int = 30) -> dict:
+        """Compute recent matches (called once at startup)."""
         # Get unique tournament IDs in reverse order (most recent first)
         all_tids = list(self.matches["tournament_id"].unique())
         recent_tids = all_tids[-limit:] if limit < len(all_tids) else all_tids
@@ -492,7 +503,11 @@ class RatingEngine:
         return {"tournaments": tournaments, "total": len(tournaments)}
 
     def get_prime_times(self, min_matches: int = 200) -> dict:
-        """Find peak rating and prime years for experienced players."""
+        """Return cached prime times."""
+        return self._prime_cache
+
+    def _compute_prime_times(self, min_matches: int = 200) -> dict:
+        """Compute prime times (called once at startup)."""
         primes = []
 
         for name, state in self.elo.players.items():
