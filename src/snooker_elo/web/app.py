@@ -125,3 +125,15 @@ def simulate_tournament(body: dict):
 
     result = engine.simulate_tournament(players, best_of, n_sims)
     return result
+
+
+@app.get("/api/matches/recent")
+def get_recent_matches(limit: int = Query(50, ge=1, le=200)):
+    """Get most recent matches with predictions."""
+    return engine.get_recent_matches(limit)
+
+
+@app.get("/api/prime-times")
+def get_prime_times(min_matches: int = Query(200, ge=50, le=1000)):
+    """Get peak rating and prime years for experienced players."""
+    return engine.get_prime_times(min_matches)
