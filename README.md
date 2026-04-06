@@ -4,6 +4,12 @@ ELO and Glicko-2 rating systems for professional snooker, with ML match predicti
 
 > This project grew out of [2025-Summer-Erdos-Elo-Project](https://github.com/PubohH/2025-Summer-Erdos-Elo-Project), a summer 2025 project at the Erdos Institute. The original project applied a basic ELO system to snooker. This repo is a complete rewrite with Glicko-2, MLE-optimized parameters, an incremental pipeline, and a full-stack web app.
 
+## Live Demo
+
+**https://cue-rating.onrender.com**
+
+Hosted on Render's free tier. On first visit after idle (15 min), the server cold-starts and computes ratings for 115,630 matches (~45 seconds). After that, all pages load instantly. Refresh if you see a loading message.
+
 ## Results
 
 **115,630 matches** from 1982-2025 across **1,085 tournaments** and **3,832 players**.
