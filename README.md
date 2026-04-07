@@ -8,11 +8,13 @@ ELO and Glicko-2 rating systems for professional snooker, with ML match predicti
 
 **https://cue-rating.onrender.com**
 
-Hosted on Render's free tier. On first visit after idle (15 min), the server cold-starts and computes ratings for 115,630 matches (~45 seconds). After that, all pages load instantly. Refresh if you see a loading message.
+Hosted on Render's free tier. On first visit after idle (15 min), the server cold-starts and computes ratings for 117,530 matches (~45 seconds). After that, all pages load instantly. Refresh if you see a loading message.
+
+Data last updated: April 7, 2026.
 
 ## Results
 
-**115,630 matches** from 1982-2025 across **1,085 tournaments** and **3,832 players**.
+**117,530 matches** from 1982-2026 across **1,108 tournaments** and **3,832+ players**.
 
 ### Rating System Comparison (34,521 matches, last 300 tournaments)
 

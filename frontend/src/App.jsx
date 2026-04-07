@@ -37,8 +37,8 @@ export default function App() {
         </Routes>
       </main>
       <footer className="footer">
-        <span>115,630 matches &middot; 3,832 players &middot; 1982-2025</span>
-        <span>ELO + Glicko-2 &middot; MLE-optimized parameters</span>
+        <span>117,530 matches &middot; 1,108 tournaments &middot; 1982-2026</span>
+        <span>Data last updated: April 7, 2026 &middot; ELO + Glicko-2</span>
       </footer>
     </div>
   )
