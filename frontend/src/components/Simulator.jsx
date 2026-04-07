@@ -53,6 +53,11 @@ export default function Simulator() {
   const [mcResult, setMcResult] = useState(null)
   const [bracket, setBracket] = useState(null)
   const [formatType, setFormatType] = useState('ranking_event')
+  const changeFormat = useCallback((fmt) => {
+    setFormatType(fmt)
+    setBracket(null)
+    setMcResult(null)
+  }, [])
   const [loading, setLoading] = useState(false)
   const [serverLoading, setServerLoading] = useState(false)
 
@@ -124,7 +129,7 @@ export default function Simulator() {
           <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem',
             fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
             Tournament Format
-            <select value={formatType} onChange={e => setFormatType(e.target.value)}
+            <select value={formatType} onChange={e => changeFormat(e.target.value)}
               style={{ width: 220 }}>
               <option value="world_championship">World Championship</option>
               <option value="ranking_event">Ranking Event</option>
