@@ -84,7 +84,7 @@ export default function Simulator() {
         else console.error(e)
       })
       .finally(() => setLoading(false))
-  }, [players, bestOf])
+  }, [players, bestOf, formatType])
 
   const handleResimulate = useCallback(() => {
     if (players.length < 2) return
@@ -93,7 +93,7 @@ export default function Simulator() {
       .then(setBracket)
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [players, bestOf])
+  }, [players, bestOf, formatType])
 
   if (serverLoading) {
     return <div className="loading">Server is computing ratings... Please wait ~45s and refresh.</div>
