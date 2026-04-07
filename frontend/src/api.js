@@ -55,11 +55,11 @@ export const searchPlayers = (query) =>
 
 export const getStats = () => fetchJSON('/stats')
 
-export const simulateTournament = (players, bestOf, simulations = 10000) =>
-  postJSON('/simulate', { players, best_of: bestOf, simulations })
+export const simulateTournament = (players, bestOf, simulations = 10000, formatType = 'uniform') =>
+  postJSON('/simulate', { players, best_of: bestOf, simulations, format_type: formatType })
 
-export const simulateBracket = (players, bestOf) =>
-  postJSON('/simulate/bracket', { players, best_of: bestOf })
+export const simulateBracket = (players, bestOf, formatType = 'uniform') =>
+  postJSON('/simulate/bracket', { players, best_of: bestOf, format_type: formatType })
 
 export const getRecentMatches = (limit = 50) =>
   fetchJSON(`/matches/recent?limit=${limit}`)

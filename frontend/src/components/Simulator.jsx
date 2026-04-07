@@ -52,6 +52,7 @@ export default function Simulator() {
   const [bestOf, setBestOf] = useState(9)
   const [mcResult, setMcResult] = useState(null)
   const [bracket, setBracket] = useState(null)
+  const [formatType, setFormatType] = useState('ranking_event')
   const [loading, setLoading] = useState(false)
   const [serverLoading, setServerLoading] = useState(false)
 
@@ -69,8 +70,8 @@ export default function Simulator() {
     setBracket(null)
     setMcResult(null)
     Promise.all([
-      simulateBracket(players, bestOf),
-      simulateTournament(players, bestOf, 10000),
+      simulateBracket(players, bestOf, formatType),
+      simulateTournament(players, bestOf, 10000, formatType),
     ])
       .then(([b, mc]) => { setBracket(b); setMcResult(mc) })
       .catch(e => {
@@ -83,7 +84,7 @@ export default function Simulator() {
   const handleResimulate = useCallback(() => {
     if (players.length < 2) return
     setLoading(true)
-    simulateBracket(players, bestOf)
+    simulateBracket(players, bestOf, formatType)
       .then(setBracket)
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -122,14 +123,27 @@ export default function Simulator() {
           <PlayerSearch onAdd={addPlayer} />
           <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem',
             fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Format
-            <select value={bestOf} onChange={e => setBestOf(parseInt(e.target.value))}
-              style={{ width: 120 }}>
-              {[5, 7, 9, 11, 13, 17, 19, 25, 35].map(n => (
-                <option key={n} value={n}>Best of {n}</option>
-              ))}
+            Tournament Format
+            <select value={formatType} onChange={e => setFormatType(e.target.value)}
+              style={{ width: 220 }}>
+              <option value="world_championship">World Championship (BO19→BO35)</option>
+              <option value="ranking_event">Ranking Event (BO7→BO19)</option>
+              <option value="masters">Masters / Invitational (BO11→BO19)</option>
+              <option value="uniform">Uniform (same every round)</option>
             </select>
           </label>
+          {formatType === 'uniform' && (
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem',
+              fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Best of
+              <select value={bestOf} onChange={e => setBestOf(parseInt(e.target.value))}
+                style={{ width: 100 }}>
+                {[5, 7, 9, 11, 13, 17, 19, 25, 35].map(n => (
+                  <option key={n} value={n}>BO{n}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <button onClick={handleSimulate} disabled={loading || players.length < 2}>
             {loading ? 'Simulating...' : `Simulate (${players.length} players)`}
           </button>
@@ -196,7 +210,9 @@ export default function Simulator() {
                 <tr>
                   <th>Player</th>
                   <th>Rating</th>
-                  {mcResult.round_names.map(r => <th key={r}>{r}</th>)}
+                  {(mcResult.round_info || mcResult.round_names.map(r => ({name: r}))).map(r => (
+                  <th key={r.name || r}>{r.name || r}{r.best_of ? ` (BO${r.best_of})` : ''}</th>
+                ))}
                   <th>Win %</th>
                 </tr>
               </thead>
@@ -237,7 +253,10 @@ function BracketView({ bracket }) {
       <div className="bracket">
         {rounds.map((round, rIdx) => (
           <div className="bracket-round" key={rIdx}>
-            <div className="bracket-round-name">{round.name}</div>
+            <div className="bracket-round-name">
+              {round.name}
+              {round.best_of && <span style={{ fontWeight: 400 }}> (BO{round.best_of})</span>}
+            </div>
             <div className="bracket-matches">
               {round.matches.filter(m => m.player1 !== 'BYE' && m.player2 !== 'BYE').map((m, mIdx) => (
                 <BracketMatch key={mIdx} match={m} />

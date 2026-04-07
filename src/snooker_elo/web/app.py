@@ -191,7 +191,8 @@ def simulate_tournament(body: dict):
     if len(players) < 2:
         return JSONResponse(status_code=400, content={"error": "Need at least 2 players"})
 
-    result = engine.simulate_tournament(players, best_of, n_sims)
+    fmt = body.get("format_type", "uniform")
+    result = engine.simulate_tournament(players, best_of, n_sims, fmt)
     return result
 
 
@@ -199,18 +200,19 @@ def simulate_tournament(body: dict):
 def simulate_bracket(body: dict):
     """Simulate one tournament bracket with scores.
 
-    Body: {"players": [...], "best_of": 9}
+    Body: {"players": [...], "best_of": 9, "format_type": "world_championship"}
     """
     err = _check_ready()
     if err:
         return err
     players = body.get("players", [])
     best_of = int(body.get("best_of", 9))
+    fmt = body.get("format_type", "uniform")
     if len(players) < 2:
         return JSONResponse(
             status_code=400, content={"error": "Need at least 2 players"}
         )
-    return engine.simulate_single_bracket(players, best_of)
+    return engine.simulate_single_bracket(players, best_of, fmt)
 
 
 @app.get("/api/matches/recent")

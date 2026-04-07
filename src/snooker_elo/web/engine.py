@@ -332,6 +332,43 @@ class RatingEngine:
             "total_tournaments": len(self.matches["tournament_id"].unique()),
         }
 
+    # Tournament format presets: round index (from final) -> best_of
+    FORMAT_PRESETS = {
+        "world_championship": {
+            "name": "World Championship",
+            # Index 0 = final, 1 = semi, 2 = QF, etc.
+            0: 35, 1: 33, 2: 25, 3: 25, 4: 19,
+        },
+        "ranking_event": {
+            "name": "Ranking Event (e.g. UK Championship)",
+            0: 19, 1: 11, 2: 11, 3: 11, 4: 7, 5: 7, 6: 7,
+        },
+        "masters": {
+            "name": "Masters / Invitational",
+            0: 19, 1: 11, 2: 11, 3: 11,
+        },
+        "uniform": {
+            "name": "Uniform (same format every round)",
+        },
+    }
+
+    @staticmethod
+    def _get_best_of_for_round(
+        round_idx: int, n_rounds: int, format_type: str, default_bo: int
+    ) -> int:
+        """Get best_of for a given round based on format preset.
+
+        round_idx: 0-based from first round.
+        Returns best_of for that round.
+        """
+        if format_type == "uniform":
+            return default_bo
+
+        preset = RatingEngine.FORMAT_PRESETS.get(format_type, {})
+        # Convert round_idx to distance-from-final
+        dist_from_final = n_rounds - 1 - round_idx
+        return preset.get(dist_from_final, default_bo)
+
     def get_rating_history(self, name: str) -> dict | None:
         """Get rating history for a player (ELO snapshots per tournament)."""
         ep = self.elo.players.get(name)
@@ -357,7 +394,11 @@ class RatingEngine:
         }
 
     def simulate_tournament(
-        self, player_names: list[str], best_of: int = 9, n_sims: int = 10000
+        self,
+        player_names: list[str],
+        best_of: int = 9,
+        n_sims: int = 10000,
+        format_type: str = "uniform",
     ) -> dict:
         """Monte Carlo tournament bracket simulation.
 
@@ -386,13 +427,12 @@ class RatingEngine:
         bracket = list(valid_players) + [None] * (bracket_size - n)
 
         # Pre-compute all pairwise frame win probabilities
-        probs = {}
+        frame_probs = {}
         for i, p1 in enumerate(valid_players):
             for p2 in valid_players[i + 1:]:
                 fp = self.elo.predict_frame_win_prob(p1, p2)
-                mp = self.elo.match_win_prob(fp, best_of)
-                probs[(p1, p2)] = mp
-                probs[(p2, p1)] = 1.0 - mp
+                frame_probs[(p1, p2)] = fp
+                frame_probs[(p2, p1)] = 1.0 - fp
 
         # Count how many rounds
         n_rounds = 0
@@ -401,25 +441,41 @@ class RatingEngine:
             n_rounds += 1
             temp //= 2
 
-        round_names = []
+        # Build round names and best_of per round
+        round_names = [f"Round {i+1}" for i in range(n_rounds)]
         if n_rounds >= 1:
-            round_names = [f"Round {i+1}" for i in range(n_rounds)]
-            if n_rounds >= 1:
-                round_names[-1] = "Final"
-            if n_rounds >= 2:
-                round_names[-2] = "Semi-Final"
-            if n_rounds >= 3:
-                round_names[-3] = "Quarter-Final"
+            round_names[-1] = "Final"
+        if n_rounds >= 2:
+            round_names[-2] = "Semi-Final"
+        if n_rounds >= 3:
+            round_names[-3] = "Quarter-Final"
+
+        round_bos = []
+        for r in range(n_rounds):
+            bo = self._get_best_of_for_round(r, n_rounds, format_type, best_of)
+            round_bos.append(bo)
+
+        # Pre-compute match probs per round
+        match_probs_by_round = []
+        for bo in round_bos:
+            probs = {}
+            for i, p1 in enumerate(valid_players):
+                for p2 in valid_players[i + 1:]:
+                    fp = frame_probs[(p1, p2)]
+                    mp = self.elo.match_win_prob(fp, bo)
+                    probs[(p1, p2)] = mp
+                    probs[(p2, p1)] = 1.0 - mp
+            match_probs_by_round.append(probs)
 
         # Simulate
         rng = random.Random(42)
-        # Track: player -> [round1_advances, round2_advances, ..., wins]
         counts = {p: [0] * n_rounds for p in valid_players}
 
         for _ in range(n_sims):
             current = list(bracket)
 
             for round_idx in range(n_rounds):
+                probs = match_probs_by_round[round_idx]
                 next_round = []
                 for i in range(0, len(current), 2):
                     p1 = current[i]
@@ -461,28 +517,36 @@ class RatingEngine:
 
         players_result.sort(key=lambda x: -x["win_prob"])
 
+        # Round info with best_of
+        round_info = [
+            {"name": rn, "best_of": bo}
+            for rn, bo in zip(round_names, round_bos)
+        ]
+
         return {
             "bracket_size": bracket_size,
             "n_players": len(valid_players),
             "n_simulations": n_sims,
-            "best_of": best_of,
+            "format_type": format_type,
             "round_names": round_names,
+            "round_info": round_info,
             "players": players_result,
         }
 
     def simulate_single_bracket(
-        self, player_names: list[str], best_of: int = 9
+        self,
+        player_names: list[str],
+        best_of: int = 9,
+        format_type: str = "uniform",
     ) -> dict:
         """Simulate one tournament bracket with match scores.
 
-        Returns the full bracket structure with simulated scores
-        for visualization.
+        Returns the full bracket structure with simulated scores.
         """
         valid = [n for n in player_names if n in self.elo.players]
         if len(valid) < 2:
             return {"error": "Need at least 2 valid players"}
 
-        # Pad to power of 2
         bracket_size = 1
         while bracket_size < len(valid):
             bracket_size *= 2
@@ -490,19 +554,14 @@ class RatingEngine:
         valid.sort(key=lambda x: -self.elo.players[x].rating)
         bracket = list(valid) + [None] * (bracket_size - len(valid))
 
-        # Pre-compute match win probs and frame win probs
-        probs = {}
+        # Pre-compute frame win probs
         frame_probs = {}
         for i, p1 in enumerate(valid):
             for p2 in valid[i + 1:]:
                 fp = self.elo.predict_frame_win_prob(p1, p2)
-                mp = self.elo.match_win_prob(fp, best_of)
-                probs[(p1, p2)] = mp
-                probs[(p2, p1)] = 1.0 - mp
                 frame_probs[(p1, p2)] = fp
                 frame_probs[(p2, p1)] = 1.0 - fp
 
-        # Round names
         n_rounds = 0
         temp = bracket_size
         while temp > 1:
@@ -517,13 +576,15 @@ class RatingEngine:
         if n_rounds >= 3:
             round_names[-3] = "Quarter-Final"
 
-        # Simulate one bracket with actual scores
-        rng = random.Random()  # Truly random each time
-        win_target = (best_of + 1) // 2
-        rounds_data = []  # List of rounds, each round is list of matches
+        rng = random.Random()
+        rounds_data = []
         current = list(bracket)
 
         for round_idx in range(n_rounds):
+            round_bo = self._get_best_of_for_round(
+                round_idx, n_rounds, format_type, best_of
+            )
+            win_target = (round_bo + 1) // 2
             round_matches = []
             next_round = []
 
@@ -570,6 +631,7 @@ class RatingEngine:
 
             rounds_data.append({
                 "name": round_names[round_idx],
+                "best_of": round_bo,
                 "matches": round_matches,
             })
             current = next_round
@@ -615,9 +677,19 @@ class RatingEngine:
                 mp = self.elo.match_win_prob(fp, bo)
 
                 predicted_winner = p1 if mp > 0.5 else p2
-                upset = predicted_winner != p1  # p1 is always actual winner
-                if not upset:
+                elo_correct = predicted_winner == p1
+                if elo_correct:
                     correct += 1
+
+                # Classify result: mp is P(player1 wins), p1 always won
+                if mp < 0.35:
+                    tag = "upset"       # Genuine upset
+                elif mp < 0.45:
+                    tag = "mild_upset"  # Underdog won
+                elif mp <= 0.55:
+                    tag = "toss_up"     # Too close to call
+                else:
+                    tag = "expected"    # Favorite won
 
                 matches_list.append({
                     "player1": p1,
@@ -626,7 +698,7 @@ class RatingEngine:
                     "score2": s2,
                     "best_of": bo,
                     "elo_win_prob": round(mp, 3),
-                    "upset": upset,
+                    "tag": tag,
                     "p1_elo": round(self.elo.players.get(
                         p1, type("", (), {"rating": 1000})
                     ).rating),
@@ -646,7 +718,8 @@ class RatingEngine:
                 "year": year,
                 "n_matches": n_matches,
                 "accuracy": round(correct / n_matches, 3) if n_matches > 0 else 0,
-                "upsets": n_matches - correct,
+                "incorrect": n_matches - correct,
+                "upsets": sum(1 for m in matches_list if m["tag"] == "upset"),
                 "matches": matches_list,
             })
 

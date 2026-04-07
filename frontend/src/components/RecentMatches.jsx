@@ -21,7 +21,7 @@ export default function RecentMatches() {
   if (loading) return <div className="loading">Loading tournaments...</div>
 
   const totalMatches = tournaments.reduce((s, t) => s + t.n_matches, 0)
-  const totalUpsets = tournaments.reduce((s, t) => s + t.upsets, 0)
+  const totalUpsets = tournaments.reduce((s, t) => s + (t.upsets || 0), 0)
   const avgAccuracy = tournaments.length > 0
     ? (tournaments.reduce((s, t) => s + t.accuracy, 0) / tournaments.length * 100).toFixed(1)
     : 0
@@ -153,7 +153,8 @@ function MatchTable({ matches }) {
               </span>
             </td>
             <td>
-              {m.upset && <span className="badge badge-red">UPSET</span>}
+              {m.tag === 'upset' && <span className="badge badge-red">UPSET</span>}
+              {m.tag === 'mild_upset' && <span className="badge badge-gray">MILD UPSET</span>}
             </td>
           </tr>
         ))}
