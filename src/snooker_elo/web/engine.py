@@ -45,13 +45,14 @@ class RatingEngine:
         tourn_path = Path(self.data_path).parent / "tournaments.csv"
         if tourn_path.exists():
             tdf = pd.read_csv(tourn_path, dtype={"tournament_id": str})
+            tdf = tdf.fillna("")
             for _, row in tdf.iterrows():
                 self._tournament_meta[str(row["tournament_id"])] = {
                     "name": str(row.get("name", "")),
                     "status": str(row.get("status", "")),
                     "category": str(row.get("category", "")),
-                    "city": str(row.get("city", "")),
-                    "country": str(row.get("country", "")),
+                    "city": str(row.get("city", "")).replace("nan", ""),
+                    "country": str(row.get("country", "")).replace("nan", ""),
                 }
             print(f"  {len(self._tournament_meta)} tournament metadata entries loaded")
 
@@ -89,7 +90,7 @@ class RatingEngine:
         # Precompute API caches
         print("Precomputing API caches...")
         start = time.time()
-        self._recent_cache = self._compute_recent_matches(10)
+        self._recent_cache = self._compute_recent_matches(30)
         self._comparison_cache = self._compute_comparison()
         self._prime_cache = self._compute_prime_times(200)
         print(f"  Caches built in {time.time()-start:.2f}s")
