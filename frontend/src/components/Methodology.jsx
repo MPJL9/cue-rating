@@ -177,21 +177,31 @@ export default function Methodology() {
         </p>
       </Section>
 
-      <Section title="5. Prediction Accuracy in Context">
-        <table>
-          <thead><tr><th>Sport</th><th>ELO / Rating</th><th>Best ML</th><th>Our Project</th></tr></thead>
-          <tbody>
-            <tr><td>Snooker</td><td>67-69%</td><td>69-71%</td><td style={{ fontWeight: 700, color: 'var(--green)' }}>70.2%</td></tr>
-            <tr><td>Tennis</td><td>67-70%</td><td>69-75%</td><td>—</td></tr>
-            <tr><td>Chess</td><td>65-69%</td><td>68-75%</td><td>—</td></tr>
-            <tr><td>NBA</td><td>65-67%</td><td>67-70%</td><td>—</td></tr>
-            <tr><td>Soccer (3-way)</td><td>51-55%</td><td>54-56%</td><td>—</td></tr>
-          </tbody>
-        </table>
+      <Section title="5. ELO vs Glicko-2 Comparison">
+        <div className="vs-grid">
+          <div className="vs-box elo">
+            <strong style={{ color: 'var(--green)' }}>ELO Strengths</strong>
+            <ul style={{ paddingLeft: '1.2rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <li>Better match prediction accuracy (69.1% vs 68.8%)</li>
+              <li>Better log-loss (0.586 vs 0.594)</li>
+              <li>Simpler — one parameter per player</li>
+              <li>Faster to compute (0.3s vs 2.1s for 117K matches)</li>
+            </ul>
+          </div>
+          <div className="vs-box glicko2">
+            <strong style={{ color: 'var(--blue)' }}>Glicko-2 Strengths</strong>
+            <ul style={{ paddingLeft: '1.2rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <li>Better calibration (ECE: 0.382 vs 0.394)</li>
+              <li>Better frame win MAE (0.214 vs 0.218)</li>
+              <li>RD quantifies uncertainty — valuable ML feature</li>
+              <li>Handles inactivity naturally (Zhao Xintong case)</li>
+            </ul>
+          </div>
+        </div>
         <p style={{ marginTop: '1rem' }}>
-          The theoretical ceiling for pre-match snooker prediction is ~72-75%.
-          The remaining gap is irreducible randomness: player form on the day,
-          mental state, and match conditions that no pre-match model can capture.
+          Combined, the two systems achieve <strong>70.2% accuracy</strong> with just 6 features.
+          The ELO and Glicko-2 match predictions account for 74.5% of the Gradient Boosting
+          model's feature importance.
         </p>
       </Section>
     </>

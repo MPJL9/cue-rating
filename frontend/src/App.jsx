@@ -4,7 +4,6 @@ import Leaderboard from './components/Leaderboard'
 import PlayerProfile from './components/PlayerProfile'
 import Predictor from './components/Predictor'
 import Simulator from './components/Simulator'
-import Comparison from './components/Comparison'
 import RecentMatches from './components/RecentMatches'
 import PrimeTimes from './components/PrimeTimes'
 import Methodology from './components/Methodology'
@@ -20,7 +19,6 @@ export default function App() {
           <NavLink to="/predict">Predict</NavLink>
           <NavLink to="/simulate">Simulate</NavLink>
           <NavLink to="/primes">Prime Times</NavLink>
-          <NavLink to="/comparison">ELO vs Glicko-2</NavLink>
           <NavLink to="/methodology">Methodology</NavLink>
         </div>
       </nav>
@@ -32,7 +30,6 @@ export default function App() {
           <Route path="/predict" element={<Predictor />} />
           <Route path="/simulate" element={<Simulator />} />
           <Route path="/primes" element={<PrimeTimes />} />
-          <Route path="/comparison" element={<Comparison />} />
           <Route path="/methodology" element={<Methodology />} />
         </Routes>
       </main>

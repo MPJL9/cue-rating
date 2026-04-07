@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getRatings } from '../api'
+import { getRatings, ServerLoadingError } from '../api'
 
 export default function Leaderboard() {
   const [system, setSystem] = useState('elo')
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [serverLoading, setServerLoading] = useState(false)
 
   useEffect(() => {
     setLoading(true)
+    setServerLoading(false)
     getRatings(system, 100)
       .then(data => setPlayers(data.players))
-      .catch(console.error)
+      .catch(e => {
+        if (e instanceof ServerLoadingError) setServerLoading(true)
+        else console.error(e)
+      })
       .finally(() => setLoading(false))
   }, [system])
+
+  if (serverLoading) return <ServerStarting />
 
   return (
     <>
@@ -76,5 +83,20 @@ export default function Leaderboard() {
         )}
       </div>
     </>
+  )
+}
+
+function ServerStarting() {
+  return (
+    <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+      <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>Waking up the server...</div>
+      <p style={{ color: 'var(--text-muted)', maxWidth: 500, margin: '0 auto', lineHeight: 1.8 }}>
+        Computing ELO and Glicko-2 ratings for 117,530 professional snooker matches.
+        This takes about 45 seconds on first visit. The page will refresh automatically.
+      </p>
+      <div style={{ marginTop: '2rem', color: 'var(--green)' }}>
+        <div className="spinner" />
+      </div>
+    </div>
   )
 }

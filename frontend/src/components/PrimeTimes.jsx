@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { getPrimeTimes } from '../api'
+import { getPrimeTimes, ServerLoadingError } from '../api'
 
 export default function PrimeTimes() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [serverLoading, setServerLoading] = useState(false)
 
   useEffect(() => {
     getPrimeTimes(200)
       .then(data => setPlayers(data.players))
-      .catch(console.error)
+      .catch(e => {
+        if (e instanceof ServerLoadingError) setServerLoading(true)
+      })
       .finally(() => setLoading(false))
   }, [])
 
+  if (serverLoading) return <div className="loading">Server is computing ratings... Please wait ~45s and refresh.</div>
   if (loading) return <div className="loading">Loading prime time data...</div>
 
   const top30 = players.slice(0, 30)

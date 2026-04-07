@@ -1,9 +1,26 @@
 const API_BASE = '/api'
 
-async function fetchJSON(path) {
-  const res = await fetch(`${API_BASE}${path}`)
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  return res.json()
+class ServerLoadingError extends Error {
+  constructor() {
+    super('Server is computing ratings. Please wait...')
+    this.name = 'ServerLoadingError'
+  }
+}
+
+async function fetchJSON(path, retries = 3) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(`${API_BASE}${path}`)
+    if (res.status === 503) {
+      if (attempt < retries) {
+        // Wait and retry — server is still computing ratings
+        await new Promise(r => setTimeout(r, 5000))
+        continue
+      }
+      throw new ServerLoadingError()
+    }
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  }
 }
 
 async function postJSON(path, body) {
@@ -12,9 +29,12 @@ async function postJSON(path, body) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+  if (res.status === 503) throw new ServerLoadingError()
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   return res.json()
 }
+
+export { ServerLoadingError }
 
 export const getRatings = (system = 'elo', top = 100) =>
   fetchJSON(`/ratings?system=${system}&top=${top}`)

@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getRecentMatches } from '../api'
+import { getRecentMatches, ServerLoadingError } from '../api'
 
 export default function RecentMatches() {
   const [tournaments, setTournaments] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState(null)
+  const [serverLoading, setServerLoading] = useState(false)
 
   useEffect(() => {
     getRecentMatches(30)
       .then(data => setTournaments(data.tournaments))
-      .catch(console.error)
+      .catch(e => {
+        if (e instanceof ServerLoadingError) setServerLoading(true)
+      })
       .finally(() => setLoading(false))
   }, [])
 
+  if (serverLoading) return <div className="loading">Server is computing ratings... Please wait ~45s and refresh.</div>
   if (loading) return <div className="loading">Loading tournaments...</div>
 
   const totalMatches = tournaments.reduce((s, t) => s + t.n_matches, 0)
