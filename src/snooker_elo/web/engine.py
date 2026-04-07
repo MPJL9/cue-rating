@@ -367,7 +367,9 @@ class RatingEngine:
         preset = RatingEngine.FORMAT_PRESETS.get(format_type, {})
         # Convert round_idx to distance-from-final
         dist_from_final = n_rounds - 1 - round_idx
-        return preset.get(dist_from_final, default_bo)
+        # Fallback: use the earliest defined round (highest key)
+        fallback = preset.get(max((k for k in preset if isinstance(k, int)), default=0), default_bo)
+        return preset.get(dist_from_final, fallback)
 
     def get_rating_history(self, name: str) -> dict | None:
         """Get rating history for a player (ELO snapshots per tournament)."""

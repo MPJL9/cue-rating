@@ -246,26 +246,30 @@ export default function Simulator() {
   )
 }
 
-const FORMAT_DETAILS = {
+// Backend format presets mirrored here (dist_from_final -> best_of)
+const FORMAT_PRESETS = {
   world_championship: {
     label: 'World Championship',
-    rounds: { 'Final': 35, 'Semi-Final': 33, 'Quarter-Final': 25, 'Round 2': 25, 'Round 1': 19 },
+    // 0=final, 1=semi, 2=QF, etc.
+    bo: { 0: 35, 1: 33, 2: 25, 3: 25, 4: 19 },
+    fallback: 19,
   },
   ranking_event: {
     label: 'Ranking Event (e.g. UK Championship)',
-    rounds: { 'Final': 19, 'Semi-Final': 11, 'Quarter-Final': 11, 'Round 4': 11, 'Round 3': 7, 'Round 2': 7, 'Round 1': 7 },
+    bo: { 0: 19, 1: 11, 2: 11, 3: 11, 4: 7, 5: 7, 6: 7 },
+    fallback: 7,
   },
   masters: {
     label: 'Masters / Invitational',
-    rounds: { 'Final': 19, 'Semi-Final': 11, 'Quarter-Final': 11, 'Round 1': 11 },
+    bo: { 0: 19, 1: 11, 2: 11, 3: 11 },
+    fallback: 11,
   },
 }
 
 function FormatPreview({ formatType, nPlayers }) {
-  const fmt = FORMAT_DETAILS[formatType]
+  const fmt = FORMAT_PRESETS[formatType]
   if (!fmt) return null
 
-  // Figure out how many rounds for this player count
   let bracketSize = 1
   const n = Math.max(nPlayers, 2)
   while (bracketSize < n) bracketSize *= 2
@@ -280,15 +284,18 @@ function FormatPreview({ formatType, nPlayers }) {
 
   return (
     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.5rem 0',
-      display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-      <span style={{ fontWeight: 500, color: 'var(--text)' }}>{fmt.label}:</span>
-      {roundNames.map(name => {
-        const bo = fmt.rounds[name] || fmt.rounds['Round 1'] || 9
+      display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      {roundNames.map((name, idx) => {
+        const distFromFinal = nRounds - 1 - idx
+        const bo = fmt.bo[distFromFinal] ?? fmt.fallback
         return (
-          <span key={name} style={{ background: 'var(--bg-hover)', padding: '0.15rem 0.5rem',
-            borderRadius: 4 }}>
-            {name} <span style={{ color: 'var(--green)', fontWeight: 600 }}>BO{bo}</span>
-          </span>
+          <React.Fragment key={name}>
+            {idx > 0 && <span style={{ color: '#444' }}>→</span>}
+            <span style={{ background: 'var(--bg-hover)', padding: '0.15rem 0.5rem',
+              borderRadius: 4 }}>
+              {name} <span style={{ color: 'var(--green)', fontWeight: 600 }}>BO{bo}</span>
+            </span>
+          </React.Fragment>
         )
       })}
     </div>
