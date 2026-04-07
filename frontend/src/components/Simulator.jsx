@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
-import { searchPlayers, simulateTournament } from '../api'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { searchPlayers, simulateTournament, simulateBracket, ServerLoadingError } from '../api'
 
 function PlayerSearch({ onAdd }) {
   const [query, setQuery] = useState('')
@@ -38,16 +38,22 @@ function PlayerSearch({ onAdd }) {
 }
 
 const PRESETS = {
+  "Top 4": ["Judd Trump", "Mark Selby", "John Higgins", "Ronnie O'Sullivan"],
   "Top 8": ["Judd Trump", "Mark Selby", "John Higgins", "Ronnie O'Sullivan",
              "Kyren Wilson", "Mark Allen", "Neil Robertson", "Barry Hawkins"],
-  "Top 4": ["Judd Trump", "Mark Selby", "John Higgins", "Ronnie O'Sullivan"],
+  "Top 16": ["Judd Trump", "Mark Selby", "John Higgins", "Ronnie O'Sullivan",
+              "Kyren Wilson", "Mark Allen", "Neil Robertson", "Barry Hawkins",
+              "Mark Williams", "Shaun Murphy", "Ding Junhui", "Yan Bingtao",
+              "Zhao Xintong", "Luca Brecel", "Wu Yize", "Xiao Guodong"],
 }
 
 export default function Simulator() {
   const [players, setPlayers] = useState([])
-  const [bestOf, setBestOf] = useState(17)
-  const [result, setResult] = useState(null)
+  const [bestOf, setBestOf] = useState(9)
+  const [mcResult, setMcResult] = useState(null)
+  const [bracket, setBracket] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [serverLoading, setServerLoading] = useState(false)
 
   const addPlayer = useCallback((name) => {
     if (!players.includes(name)) setPlayers(prev => [...prev, name])
@@ -60,24 +66,44 @@ export default function Simulator() {
   const handleSimulate = useCallback(() => {
     if (players.length < 2) return
     setLoading(true)
-    simulateTournament(players, bestOf, 10000)
-      .then(setResult)
+    setBracket(null)
+    setMcResult(null)
+    Promise.all([
+      simulateBracket(players, bestOf),
+      simulateTournament(players, bestOf, 10000),
+    ])
+      .then(([b, mc]) => { setBracket(b); setMcResult(mc) })
+      .catch(e => {
+        if (e instanceof ServerLoadingError) setServerLoading(true)
+        else console.error(e)
+      })
+      .finally(() => setLoading(false))
+  }, [players, bestOf])
+
+  const handleResimulate = useCallback(() => {
+    if (players.length < 2) return
+    setLoading(true)
+    simulateBracket(players, bestOf)
+      .then(setBracket)
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [players, bestOf])
 
-  const chartData = result?.players?.map(p => ({
-    name: p.name.split(' ').pop(),  // Last name for chart
+  if (serverLoading) {
+    return <div className="loading">Server is computing ratings... Please wait ~45s and refresh.</div>
+  }
+
+  const chartData = mcResult?.players?.map(p => ({
+    name: p.name.split(' ').pop(),
     fullName: p.name,
     winProb: Math.round(p.win_prob * 1000) / 10,
-    rating: p.elo_rating,
   })) || []
 
   return (
     <>
       <div className="page-header">
         <h1>Tournament Simulator</h1>
-        <p>Monte Carlo simulation of a single-elimination bracket (10,000 runs)</p>
+        <p>Simulate a knockout bracket and estimate win probabilities via Monte Carlo</p>
       </div>
 
       <div className="card">
@@ -119,19 +145,37 @@ export default function Simulator() {
         </div>
       </div>
 
-      {result && (
+      {bracket && (
+        <div className="card">
+          <div className="card-header">
+            <h2>
+              Simulated Bracket
+              {bracket.champion && (
+                <span style={{ color: 'var(--green)', marginLeft: '0.75rem', fontWeight: 400, fontSize: '0.9rem' }}>
+                  Champion: {bracket.champion}
+                </span>
+              )}
+            </h2>
+            <button className="btn-outline" onClick={handleResimulate} disabled={loading}>
+              Re-roll
+            </button>
+          </div>
+          <BracketView bracket={bracket} />
+        </div>
+      )}
+
+      {mcResult && (
         <>
           <div className="card">
             <div className="card-header">
-              <h2>Win Probability</h2>
-              <span className="badge badge-gray">{result.n_simulations.toLocaleString()} simulations</span>
+              <h2>Win Probability (10,000 simulations)</h2>
             </div>
-            <ResponsiveContainer width="100%" height={Math.max(250, result.players.length * 36)}>
+            <ResponsiveContainer width="100%" height={Math.max(200, mcResult.players.length * 36)}>
               <BarChart data={chartData} layout="vertical" margin={{ left: 80 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
                 <XAxis type="number" stroke="#71717a" fontSize={12}
                   tickFormatter={v => `${v}%`} domain={[0, 'auto']} />
-                <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={12} width={80} />
+                <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={12}
+                  width={80} interval={0} />
                 <Tooltip
                   contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 6 }}
                   formatter={(v, _, props) => [`${v}%`, props.payload.fullName]}
@@ -146,31 +190,28 @@ export default function Simulator() {
           </div>
 
           <div className="card">
-            <div className="card-header">
-              <h2>Detailed Results</h2>
-            </div>
+            <div className="card-header"><h2>Round-by-Round Advancement</h2></div>
             <table>
               <thead>
                 <tr>
                   <th>Player</th>
                   <th>Rating</th>
-                  {result.round_names.map(r => <th key={r}>{r}</th>)}
+                  {mcResult.round_names.map(r => <th key={r}>{r}</th>)}
                   <th>Win %</th>
                 </tr>
               </thead>
               <tbody>
-                {result.players.map((p, i) => (
+                {mcResult.players.map((p, i) => (
                   <tr key={p.name}>
                     <td style={{ fontWeight: 500 }}>{p.name}</td>
-                    <td>{p.elo_rating}</td>
-                    {result.round_names.map(r => (
+                    <td style={{ color: 'var(--text-muted)' }}>{p.elo_rating}</td>
+                    {mcResult.round_names.map(r => (
                       <td key={r} style={{ fontVariantNumeric: 'tabular-nums' }}>
                         {(p.rounds[r] * 100).toFixed(1)}%
                       </td>
                     ))}
                     <td>
-                      <span className={`badge ${i === 0 ? 'badge-green' : i < 3 ? 'badge-blue' : 'badge-gray'}`}
-                        style={{ fontWeight: 700 }}>
+                      <span className={`badge ${i === 0 ? 'badge-green' : i < 3 ? 'badge-blue' : 'badge-gray'}`}>
                         {(p.win_prob * 100).toFixed(1)}%
                       </span>
                     </td>
@@ -182,5 +223,46 @@ export default function Simulator() {
         </>
       )}
     </>
+  )
+}
+
+/* ── Bracket Visualization ── */
+
+function BracketView({ bracket }) {
+  const { rounds } = bracket
+  if (!rounds || rounds.length === 0) return null
+
+  return (
+    <div className="bracket-scroll">
+      <div className="bracket">
+        {rounds.map((round, rIdx) => (
+          <div className="bracket-round" key={rIdx}>
+            <div className="bracket-round-name">{round.name}</div>
+            <div className="bracket-matches">
+              {round.matches.filter(m => m.player1 !== 'BYE' && m.player2 !== 'BYE').map((m, mIdx) => (
+                <BracketMatch key={mIdx} match={m} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BracketMatch({ match }) {
+  const { player1, player2, score1, score2, winner } = match
+
+  return (
+    <div className="bracket-match">
+      <div className={`bracket-slot ${winner === player1 ? 'winner' : 'loser'}`}>
+        <span className="bracket-name">{player1}</span>
+        <span className="bracket-score">{score1}</span>
+      </div>
+      <div className={`bracket-slot ${winner === player2 ? 'winner' : 'loser'}`}>
+        <span className="bracket-name">{player2}</span>
+        <span className="bracket-score">{score2}</span>
+      </div>
+    </div>
   )
 }

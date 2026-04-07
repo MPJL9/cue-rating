@@ -195,6 +195,24 @@ def simulate_tournament(body: dict):
     return result
 
 
+@app.post("/api/simulate/bracket")
+def simulate_bracket(body: dict):
+    """Simulate one tournament bracket with scores.
+
+    Body: {"players": [...], "best_of": 9}
+    """
+    err = _check_ready()
+    if err:
+        return err
+    players = body.get("players", [])
+    best_of = int(body.get("best_of", 9))
+    if len(players) < 2:
+        return JSONResponse(
+            status_code=400, content={"error": "Need at least 2 players"}
+        )
+    return engine.simulate_single_bracket(players, best_of)
+
+
 @app.get("/api/matches/recent")
 def get_recent_matches(limit: int = Query(30, ge=1, le=100)):
     """Get recent tournaments with matches and predictions."""

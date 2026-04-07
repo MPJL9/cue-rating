@@ -290,6 +290,86 @@ input:focus, select:focus { outline: none; border-color: var(--green); }
 }
 .chip button:hover { color: var(--red); background: none; }
 
+/* ── Bracket visualization ── */
+.bracket-scroll {
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+.bracket {
+  display: flex;
+  gap: 0;
+  min-width: fit-content;
+}
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+.bracket-round-name {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+.bracket-matches {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 0.5rem;
+  padding: 0 0.25rem;
+}
+.bracket-match {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.bracket-match.bye {
+  opacity: 0.4;
+}
+.bracket-slot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+.bracket-slot:last-child {
+  border-bottom: none;
+}
+.bracket-slot.winner {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--green);
+  font-weight: 600;
+}
+.bracket-slot.loser {
+  color: var(--text-muted);
+}
+.bracket-slot.bye-slot {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.bracket-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+.bracket-score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.5rem;
+  min-width: 1rem;
+  text-align: right;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .nav { padding: 0 1rem; }

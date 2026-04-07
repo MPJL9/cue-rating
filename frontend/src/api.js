@@ -58,6 +58,9 @@ export const getStats = () => fetchJSON('/stats')
 export const simulateTournament = (players, bestOf, simulations = 10000) =>
   postJSON('/simulate', { players, best_of: bestOf, simulations })
 
+export const simulateBracket = (players, bestOf) =>
+  postJSON('/simulate/bracket', { players, best_of: bestOf })
+
 export const getRecentMatches = (limit = 50) =>
   fetchJSON(`/matches/recent?limit=${limit}`)
 

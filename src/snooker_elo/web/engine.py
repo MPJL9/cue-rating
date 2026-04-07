@@ -68,10 +68,10 @@ class RatingEngine:
         self._player_names = sorted(all_names)
         print(f"  {len(self._player_names)} players indexed")
 
-        # Precompute slow endpoints
+        # Precompute slow endpoints (keep it fast — limit recent to 10)
         print("Precomputing caches...")
         start = time.time()
-        self._recent_cache = self._compute_recent_matches(30)
+        self._recent_cache = self._compute_recent_matches(10)
         self._comparison_cache = self._compute_comparison()
         self._prime_cache = self._compute_prime_times(200)
         print(f"  Caches built in {time.time()-start:.2f}s")
@@ -240,16 +240,18 @@ class RatingEngine:
         g2_top20 = set(g2_ratings.head(20).index)
         overlap = len(elo_top20 & g2_top20)
 
+        # Build rank lookup dicts (O(n) instead of O(n²))
+        elo_rank_map = {n: i + 1 for i, n in enumerate(elo_ratings.index)}
+        g2_rank_map = {n: i + 1 for i, n in enumerate(g2_ratings.index)}
+
         # Find biggest disagreements
         disagreements = []
         for name in self._player_names:
             if name in self.elo.players and name in self.glicko2.players:
                 ep = self.elo.players[name]
                 if ep.matches_played >= 50:
-                    in_elo = name in elo_ratings.index
-                    in_g2 = name in g2_ratings.index
-                    elo_rank = list(elo_ratings.index).index(name) + 1 if in_elo else 9999
-                    g2_rank = list(g2_ratings.index).index(name) + 1 if in_g2 else 9999
+                    elo_rank = elo_rank_map.get(name, 9999)
+                    g2_rank = g2_rank_map.get(name, 9999)
                     diff = abs(elo_rank - g2_rank)
                     if diff > 10:
                         disagreements.append({
@@ -435,6 +437,121 @@ class RatingEngine:
             "best_of": best_of,
             "round_names": round_names,
             "players": players_result,
+        }
+
+    def simulate_single_bracket(
+        self, player_names: list[str], best_of: int = 9
+    ) -> dict:
+        """Simulate one tournament bracket with match scores.
+
+        Returns the full bracket structure with simulated scores
+        for visualization.
+        """
+        valid = [n for n in player_names if n in self.elo.players]
+        if len(valid) < 2:
+            return {"error": "Need at least 2 valid players"}
+
+        # Pad to power of 2
+        bracket_size = 1
+        while bracket_size < len(valid):
+            bracket_size *= 2
+
+        valid.sort(key=lambda x: -self.elo.players[x].rating)
+        bracket = list(valid) + [None] * (bracket_size - len(valid))
+
+        # Pre-compute match win probs and frame win probs
+        probs = {}
+        frame_probs = {}
+        for i, p1 in enumerate(valid):
+            for p2 in valid[i + 1:]:
+                fp = self.elo.predict_frame_win_prob(p1, p2)
+                mp = self.elo.match_win_prob(fp, best_of)
+                probs[(p1, p2)] = mp
+                probs[(p2, p1)] = 1.0 - mp
+                frame_probs[(p1, p2)] = fp
+                frame_probs[(p2, p1)] = 1.0 - fp
+
+        # Round names
+        n_rounds = 0
+        temp = bracket_size
+        while temp > 1:
+            n_rounds += 1
+            temp //= 2
+
+        round_names = [f"Round {i+1}" for i in range(n_rounds)]
+        if n_rounds >= 1:
+            round_names[-1] = "Final"
+        if n_rounds >= 2:
+            round_names[-2] = "Semi-Final"
+        if n_rounds >= 3:
+            round_names[-3] = "Quarter-Final"
+
+        # Simulate one bracket with actual scores
+        rng = random.Random()  # Truly random each time
+        win_target = (best_of + 1) // 2
+        rounds_data = []  # List of rounds, each round is list of matches
+        current = list(bracket)
+
+        for round_idx in range(n_rounds):
+            round_matches = []
+            next_round = []
+
+            for i in range(0, len(current), 2):
+                p1 = current[i]
+                p2 = current[i + 1] if i + 1 < len(current) else None
+
+                if p1 is None and p2 is None:
+                    next_round.append(None)
+                    continue
+                elif p2 is None:
+                    next_round.append(p1)
+                    round_matches.append({
+                        "player1": p1, "player2": "BYE",
+                        "score1": win_target, "score2": 0,
+                        "winner": p1,
+                    })
+                    continue
+                elif p1 is None:
+                    next_round.append(p2)
+                    round_matches.append({
+                        "player1": "BYE", "player2": p2,
+                        "score1": 0, "score2": win_target,
+                        "winner": p2,
+                    })
+                    continue
+
+                # Simulate frame by frame
+                fp = frame_probs.get((p1, p2), 0.5)
+                s1, s2 = 0, 0
+                while s1 < win_target and s2 < win_target:
+                    if rng.random() < fp:
+                        s1 += 1
+                    else:
+                        s2 += 1
+
+                winner = p1 if s1 > s2 else p2
+                next_round.append(winner)
+                round_matches.append({
+                    "player1": p1, "player2": p2,
+                    "score1": s1, "score2": s2,
+                    "winner": winner,
+                })
+
+            rounds_data.append({
+                "name": round_names[round_idx],
+                "matches": round_matches,
+            })
+            current = next_round
+
+        champion = current[0] if current else None
+
+        return {
+            "bracket_size": bracket_size,
+            "best_of": best_of,
+            "n_players": len(valid),
+            "round_names": round_names,
+            "rounds": rounds_data,
+            "champion": champion,
         }
 
     def get_recent_matches(self, limit: int = 30) -> dict:
