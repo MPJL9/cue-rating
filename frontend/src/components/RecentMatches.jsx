@@ -83,7 +83,12 @@ export default function RecentMatches() {
                     {[t.city, t.country].filter(Boolean).join(', ') || '—'}
                   </td>
                   <td>{t.year}</td>
-                  <td>{t.n_matches}</td>
+                  <td>
+                    {t.n_matches}
+                    {t.n_draws > 0 && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({t.n_draws} draws)</span>
+                    )}
+                  </td>
                   <td>
                     <span className={`badge ${t.accuracy > 0.7 ? 'badge-green' : t.accuracy > 0.6 ? 'badge-blue' : 'badge-gray'}`}>
                       {(t.accuracy * 100).toFixed(0)}%
@@ -155,6 +160,7 @@ function MatchTable({ matches }) {
             <td>
               {m.tag === 'upset' && <span className="badge badge-red">UPSET</span>}
               {m.tag === 'mild_upset' && <span className="badge badge-gray">MILD UPSET</span>}
+              {m.tag === 'draw' && <span className="badge badge-blue">DRAW</span>}
             </td>
           </tr>
         ))}

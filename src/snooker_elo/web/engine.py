@@ -666,30 +666,36 @@ class RatingEngine:
             year = int(tourn_df["year"].iloc[0])
             n_matches = len(tourn_df)
 
-            # Compute prediction accuracy for this tournament
+            # Compute prediction accuracy (exclude draws from accuracy)
             correct = 0
+            decisive = 0
             matches_list = []
             for _, row in tourn_df.iterrows():
                 p1, p2 = row["player1"], row["player2"]
                 s1, s2, bo = int(row["score1"]), int(row["score2"]), int(row["best_of"])
+                is_draw = s1 == s2
 
                 fp = self.elo.predict_frame_win_prob(p1, p2)
                 mp = self.elo.match_win_prob(fp, bo)
 
-                predicted_winner = p1 if mp > 0.5 else p2
-                elo_correct = predicted_winner == p1
-                if elo_correct:
-                    correct += 1
-
-                # Classify result: mp is P(player1 wins), p1 always won
-                if mp < 0.35:
-                    tag = "upset"       # Genuine upset
-                elif mp < 0.45:
-                    tag = "mild_upset"  # Underdog won
-                elif mp <= 0.55:
-                    tag = "toss_up"     # Too close to call
+                if is_draw:
+                    tag = "draw"
                 else:
-                    tag = "expected"    # Favorite won
+                    # p1 is always the winner in decisive matches
+                    predicted_winner = p1 if mp > 0.5 else p2
+                    elo_correct = predicted_winner == p1
+                    decisive += 1
+                    if elo_correct:
+                        correct += 1
+
+                    if mp < 0.35:
+                        tag = "upset"
+                    elif mp < 0.45:
+                        tag = "mild_upset"
+                    elif mp <= 0.55:
+                        tag = "toss_up"
+                    else:
+                        tag = "expected"
 
                 matches_list.append({
                     "player1": p1,
@@ -717,8 +723,9 @@ class RatingEngine:
                 "country": meta.get("country", ""),
                 "year": year,
                 "n_matches": n_matches,
-                "accuracy": round(correct / n_matches, 3) if n_matches > 0 else 0,
-                "incorrect": n_matches - correct,
+                "n_draws": n_matches - decisive,
+                "accuracy": round(correct / decisive, 3) if decisive > 0 else 0,
+                "incorrect": decisive - correct,
                 "upsets": sum(1 for m in matches_list if m["tag"] == "upset"),
                 "matches": matches_list,
             })
