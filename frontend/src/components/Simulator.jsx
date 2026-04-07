@@ -126,10 +126,10 @@ export default function Simulator() {
             Tournament Format
             <select value={formatType} onChange={e => setFormatType(e.target.value)}
               style={{ width: 220 }}>
-              <option value="world_championship">World Championship (BO19→BO35)</option>
-              <option value="ranking_event">Ranking Event (BO7→BO19)</option>
-              <option value="masters">Masters / Invitational (BO11→BO19)</option>
-              <option value="uniform">Uniform (same every round)</option>
+              <option value="world_championship">World Championship</option>
+              <option value="ranking_event">Ranking Event</option>
+              <option value="masters">Masters / Invitational</option>
+              <option value="uniform">Custom (same every round)</option>
             </select>
           </label>
           {formatType === 'uniform' && (
@@ -148,6 +148,10 @@ export default function Simulator() {
             {loading ? 'Simulating...' : `Simulate (${players.length} players)`}
           </button>
         </div>
+
+        {formatType !== 'uniform' && (
+          <FormatPreview formatType={formatType} nPlayers={players.length} />
+        )}
 
         <div className="player-chips">
           {players.map(name => (
@@ -239,6 +243,55 @@ export default function Simulator() {
         </>
       )}
     </>
+  )
+}
+
+const FORMAT_DETAILS = {
+  world_championship: {
+    label: 'World Championship',
+    rounds: { 'Final': 35, 'Semi-Final': 33, 'Quarter-Final': 25, 'Round 2': 25, 'Round 1': 19 },
+  },
+  ranking_event: {
+    label: 'Ranking Event (e.g. UK Championship)',
+    rounds: { 'Final': 19, 'Semi-Final': 11, 'Quarter-Final': 11, 'Round 4': 11, 'Round 3': 7, 'Round 2': 7, 'Round 1': 7 },
+  },
+  masters: {
+    label: 'Masters / Invitational',
+    rounds: { 'Final': 19, 'Semi-Final': 11, 'Quarter-Final': 11, 'Round 1': 11 },
+  },
+}
+
+function FormatPreview({ formatType, nPlayers }) {
+  const fmt = FORMAT_DETAILS[formatType]
+  if (!fmt) return null
+
+  // Figure out how many rounds for this player count
+  let bracketSize = 1
+  const n = Math.max(nPlayers, 2)
+  while (bracketSize < n) bracketSize *= 2
+  let nRounds = 0
+  let t = bracketSize
+  while (t > 1) { nRounds++; t /= 2 }
+
+  const roundNames = Array.from({ length: nRounds }, (_, i) => `Round ${i + 1}`)
+  if (nRounds >= 1) roundNames[nRounds - 1] = 'Final'
+  if (nRounds >= 2) roundNames[nRounds - 2] = 'Semi-Final'
+  if (nRounds >= 3) roundNames[nRounds - 3] = 'Quarter-Final'
+
+  return (
+    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.5rem 0',
+      display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <span style={{ fontWeight: 500, color: 'var(--text)' }}>{fmt.label}:</span>
+      {roundNames.map(name => {
+        const bo = fmt.rounds[name] || fmt.rounds['Round 1'] || 9
+        return (
+          <span key={name} style={{ background: 'var(--bg-hover)', padding: '0.15rem 0.5rem',
+            borderRadius: 4 }}>
+            {name} <span style={{ color: 'var(--green)', fontWeight: 600 }}>BO{bo}</span>
+          </span>
+        )
+      })}
+    </div>
   )
 }
 
