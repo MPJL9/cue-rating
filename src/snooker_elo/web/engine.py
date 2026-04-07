@@ -30,14 +30,18 @@ class RatingEngine:
         self._tournament_meta: dict[str, dict] = {}
 
     def initialize(self):
-        """Load data and compute all ratings. Called once at startup."""
+        """Load data and ratings. Uses precomputed cache if available."""
+        import pickle
+        from pathlib import Path
+
+        total_start = time.time()
+
         print("Loading match data...")
         start = time.time()
         self.matches = load_matches(self.data_path)
         print(f"  {len(self.matches)} matches loaded in {time.time()-start:.1f}s")
 
         # Load tournament metadata
-        from pathlib import Path
         tourn_path = Path(self.data_path).parent / "tournaments.csv"
         if tourn_path.exists():
             tdf = pd.read_csv(tourn_path, dtype={"tournament_id": str})
@@ -51,30 +55,46 @@ class RatingEngine:
                 }
             print(f"  {len(self._tournament_meta)} tournament metadata entries loaded")
 
-        print("Computing ELO ratings...")
-        start = time.time()
-        self.elo = EloRating(k_factor=9.77, divisor=327.15)
-        self.elo.update(self.matches)
-        print(f"  Done in {time.time()-start:.2f}s")
+        # Try to load precomputed ratings cache
+        cache_path = Path(self.data_path).parent / "ratings_cache.pkl"
+        if cache_path.exists():
+            print("Loading precomputed ratings cache...")
+            start = time.time()
+            with open(cache_path, "rb") as f:
+                cache = pickle.load(f)
+            self.elo = EloRating(**cache["elo_params"])
+            self.elo.players = cache["elo_players"]
+            self.glicko2 = Glicko2Rating(**cache["g2_params"])
+            self.glicko2.players = cache["g2_players"]
+            print(f"  Cache loaded in {time.time()-start:.2f}s")
+        else:
+            print("No cache found, computing from scratch...")
+            print("Computing ELO ratings...")
+            start = time.time()
+            self.elo = EloRating(k_factor=9.77, divisor=327.15)
+            self.elo.update(self.matches)
+            print(f"  Done in {time.time()-start:.2f}s")
 
-        print("Computing Glicko-2 ratings...")
-        start = time.time()
-        self.glicko2 = Glicko2Rating(tau=1.488, default_rating=1500)
-        self.glicko2.update(self.matches)
-        print(f"  Done in {time.time()-start:.2f}s")
+            print("Computing Glicko-2 ratings...")
+            start = time.time()
+            self.glicko2 = Glicko2Rating(tau=1.488, default_rating=1500)
+            self.glicko2.update(self.matches)
+            print(f"  Done in {time.time()-start:.2f}s")
 
         # Build sorted player name list
         all_names = set(self.elo.players.keys()) | set(self.glicko2.players.keys())
         self._player_names = sorted(all_names)
         print(f"  {len(self._player_names)} players indexed")
 
-        # Precompute slow endpoints (keep it fast — limit recent to 10)
-        print("Precomputing caches...")
+        # Precompute API caches
+        print("Precomputing API caches...")
         start = time.time()
         self._recent_cache = self._compute_recent_matches(10)
         self._comparison_cache = self._compute_comparison()
         self._prime_cache = self._compute_prime_times(200)
         print(f"  Caches built in {time.time()-start:.2f}s")
+
+        print(f"Total startup: {time.time()-total_start:.2f}s")
 
     def get_ratings(self, system: str = "elo", top: int = 50) -> list[dict]:
         """Get top-N player ratings for a given system."""
