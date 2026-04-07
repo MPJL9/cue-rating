@@ -85,7 +85,12 @@ class RatingSystem(ABC):
         """
         from math import comb
 
+        best_of = int(best_of)
+        if best_of < 1:
+            return p  # Degenerate case: single frame
         win_cond = (best_of + 1) // 2
+        if win_cond < 1:
+            return p
         q = 0.0
         for total in range(win_cond, best_of + 1):
             score1 = win_cond

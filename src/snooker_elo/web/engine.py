@@ -27,6 +27,8 @@ class RatingEngine:
         self.glicko2: Glicko2Rating | None = None
         self._player_names: list[str] = []
         self._comparison_cache: dict | None = None
+        self._recent_cache: dict | None = None
+        self._prime_cache: dict | None = None
         self._tournament_meta: dict[str, dict] = {}
 
     def initialize(self):
@@ -67,6 +69,11 @@ class RatingEngine:
             self.elo.players = cache["elo_players"]
             self.glicko2 = Glicko2Rating(**cache["g2_params"])
             self.glicko2.players = cache["g2_players"]
+            # Load precomputed API caches if available
+            if "recent_cache" in cache:
+                self._recent_cache = cache["recent_cache"]
+                self._comparison_cache = cache["comparison_cache"]
+                self._prime_cache = cache["prime_cache"]
             print(f"  Cache loaded in {time.time()-start:.2f}s")
         else:
             print("No cache found, computing from scratch...")
@@ -87,13 +94,16 @@ class RatingEngine:
         self._player_names = sorted(all_names)
         print(f"  {len(self._player_names)} players indexed")
 
-        # Precompute API caches
-        print("Precomputing API caches...")
-        start = time.time()
-        self._recent_cache = self._compute_recent_matches(30)
-        self._comparison_cache = self._compute_comparison()
-        self._prime_cache = self._compute_prime_times(200)
-        print(f"  Caches built in {time.time()-start:.2f}s")
+        # Precompute API caches (skip if loaded from cache file)
+        if self._recent_cache is None:
+            print("Precomputing API caches...")
+            start = time.time()
+            self._recent_cache = self._compute_recent_matches(30)
+            self._comparison_cache = self._compute_comparison()
+            self._prime_cache = self._compute_prime_times(200)
+            print(f"  Caches built in {time.time()-start:.2f}s")
+        else:
+            print("  API caches loaded from file")
 
         print(f"Total startup: {time.time()-total_start:.2f}s")
 
@@ -581,10 +591,12 @@ class RatingEngine:
 
     def _compute_recent_matches(self, limit: int = 30) -> dict:
         """Compute recent matches (called once at startup)."""
-        # Get unique tournament IDs in reverse order (most recent first)
-        all_tids = list(self.matches["tournament_id"].unique())
-        recent_tids = all_tids[-limit:] if limit < len(all_tids) else all_tids
-        recent_tids = list(reversed(recent_tids))
+        # Get unique tournament IDs sorted by ID descending (higher ID = more recent)
+        all_tids = sorted(
+            self.matches["tournament_id"].unique(),
+            key=lambda x: int(x), reverse=True,
+        )
+        recent_tids = all_tids[:limit]
 
         tournaments = []
         for tid in recent_tids:
