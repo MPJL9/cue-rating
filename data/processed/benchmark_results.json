@@ -1,0 +1,26 @@
+{
+  "test_size": 4777,
+  "ranking_coverage": 1958,
+  "methods": {
+    "coin_flip": {
+      "accuracy": 0.5,
+      "log_loss": 0.6931471805599452,
+      "brier": 0.25
+    },
+    "world_rankings": {
+      "accuracy": 0.6351266485241783,
+      "log_loss": 0.6580158215041112,
+      "brier": 0.22852677835436122
+    },
+    "pure_elo": {
+      "accuracy": 0.6830646849487125,
+      "log_loss": 0.5881748806922631,
+      "brier": 0.20174925644429928
+    },
+    "our_model": {
+      "accuracy": 0.6874607494243249,
+      "log_loss": 0.5787976049977163,
+      "brier": 0.19806710966047694
+    }
+  }
+}

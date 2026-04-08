@@ -12,6 +12,10 @@ Hosted on Render's free tier. On first visit after idle (15 min), the server col
 
 Data last updated: April 7, 2026.
 
+## Technical Writeup
+
+A detailed paper-style writeup covering the methodology, parameter optimization, results, and feature analysis is in [docs/writeup.md](docs/writeup.md).
+
 ## Results
 
 **117,530 matches** from 1982-2026 across **1,108 tournaments** and **3,832+ players**.
