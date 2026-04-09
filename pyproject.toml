@@ -31,7 +31,11 @@ dev = [
 ml = [
     "xgboost>=2.0",
 ]
-all = ["snooker-elo[scraping,web,dev,ml]"]
+bayesian = [
+    "pymc>=5.0",
+    "arviz>=0.15",
+]
+all = ["snooker-elo[scraping,web,dev,ml,bayesian]"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

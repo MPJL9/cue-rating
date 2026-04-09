@@ -88,7 +88,33 @@ We adapt Glicko-2 to snooker as follows:
 - **Rating period = tournament**: All matches in a tournament are processed as a single rating period. Between tournaments, RDs of inactive players inflate according to the standard formula.
 - **Frame-weighted continuous outcomes**: Instead of binary win/loss, we use the frame win proportion `s = s_1 / (s_1 + s_2)` as the outcome, weighted by total frames played. This parallels the frame-based ELO update.
 
-### 3.3 Parameter Optimization via MLE
+### 3.3 Bayesian Bradley-Terry
+
+ELO and Glicko-2 are both implicitly fitting variants of the Bradley-Terry model (Bradley & Terry, 1952), which assigns each player a latent skill `s` and models the probability that player *i* beats player *j* as `sigmoid(s_i - s_j)`. ELO is essentially online stochastic gradient descent on the Bradley-Terry log-likelihood; Glicko-2 is an approximate Bayesian extension that maintains a Gaussian belief over each player's skill.
+
+We implement a *fully* Bayesian version using PyMC and MCMC inference. The model is:
+
+```
+s_i ~ Normal(0, 2)        for each player i
+p_ij = sigmoid(s_i - s_j)  predicted frame win prob
+f_ij ~ Binomial(n_ij, p_ij)  observed frames i won out of n_ij vs j
+```
+
+We aggregate frame counts per ordered player pair and fit the joint posterior over all skills using the No-U-Turn Sampler (Hoffman & Gelman, 2014) — 4 chains × 2000 draws after 1500 tuning steps. To break the model's rotational invariance (the likelihood is unchanged under a uniform shift of all skills), we center the skills to sum to zero via a deterministic transformation.
+
+We restrict the Bayesian fit to **active players** (≥100 matches in the past 2 years), yielding 29 elite professionals. This restriction is necessary for two reasons: MCMC over all 3,849 players would be computationally prohibitive, and players with few recent matches would have posteriors essentially identical to the prior — providing no useful information.
+
+Sampling completes in ~5 seconds. The output is a posterior with 8000 samples per player; predictions for new matches use **posterior predictive averaging**:
+
+```
+P(i beats j in a frame) ≈ (1/N) · Σ_k sigmoid(s_i^(k) - s_j^(k))
+```
+
+This properly propagates skill uncertainty through to prediction uncertainty — a feature ELO and Glicko-2 cannot offer.
+
+A standalone document at [`docs/bayesian_bt_explained.md`](bayesian_bt_explained.md) walks through the derivation in detail.
+
+### 3.4 Parameter Optimization via MLE
 
 Treating each frame as a Bernoulli trial with probability `p_i` predicted by the rating system, the log-likelihood of observed frame scores across all matches is:
 
@@ -182,7 +208,26 @@ These results are conservative for two reasons:
 
 Bookmakers typically reach 67–70% accuracy on individual sports (Kovalchik, 2016 — tennis), so our 68.8% is competitive with what professional odds-makers achieve, though a direct head-to-head comparison would require a paid odds dataset.
 
-### 4.4 Calibration
+### 4.4 Three-System Comparison on Elite Matches
+
+We evaluate ELO, Glicko-2, and Bayesian Bradley-Terry on the same held-out test set restricted to matches between 29 elite players (≥100 matches in the past 2 years), giving 983 matches:
+
+| System | Accuracy | Log Loss | Brier |
+|--------|----------|----------|-------|
+| ELO (full history) | 0.5554 | 0.7123 | 0.2559 |
+| Glicko-2 (full history) | 0.5788 | 0.6979 | 0.2483 |
+| **Bayesian BT (recent only)** | **0.6297** | **0.6547** | **0.2314** |
+
+The Bayesian model wins on all three metrics. Two factors contribute:
+
+1. **Recent data only.** The Bayesian fit uses the past 2 years, while ELO and Glicko-2 carry information from all of 1982-onward. For elite players with shifting form, recent data is more relevant.
+2. **Posterior predictive averaging.** Even when point estimates agree, averaging predictions across 8000 posterior samples produces better-calibrated probabilities than single-point predictions.
+
+Note that on the broader test set (Section 4.1, including matches with one or both players outside the elite group), the Bayesian model cannot make predictions and so its accuracy advantage doesn't extend automatically. The classical 70.2% from gradient boosting on rating-system features remains the best general-purpose model.
+
+The Bayesian extension is most valuable as a *probabilistic modeling exercise* — it demonstrates principled uncertainty quantification, which is the foundation for any Bayesian decision-making in trading, recommendation, or active learning.
+
+### 4.5 Calibration
 
 A model is well-calibrated if predicted probabilities correspond to actual frequencies: among matches where the model predicts a 70% win probability, the favored player should win approximately 70% of the time. We measure calibration via Expected Calibration Error (ECE) computed over 10 equal-width probability bins.
 
@@ -259,9 +304,12 @@ The system is open-source and deployed as an interactive web application, suppor
 
 ## References
 
-1. Elo, A. E. (1978). *The Rating of Chessplayers, Past and Present*. Arco Pub.
-2. Glickman, M. E. (1995). The Glicko system. https://www.glicko.net/glicko/glicko.pdf
-3. Glickman, M. E. (2001). Dynamic paired comparison models with stochastic variances. *Journal of Applied Statistics*, 28(6).
-4. Glickman, M. E. (2012). Example of the Glicko-2 system. http://www.glicko.net/glicko/glicko2.pdf
-5. Kovalchik, S. (2016). Searching for the GOAT of tennis win prediction. *Journal of Quantitative Analysis in Sports*, 12(3).
-6. Original Erdos Institute project: https://github.com/PubohH/2025-Summer-Erdos-Elo-Project
+1. Bradley, R. A., & Terry, M. E. (1952). Rank analysis of incomplete block designs: I. The method of paired comparisons. *Biometrika*, 39(3/4).
+2. Elo, A. E. (1978). *The Rating of Chessplayers, Past and Present*. Arco Pub.
+3. Glickman, M. E. (1995). The Glicko system. https://www.glicko.net/glicko/glicko.pdf
+4. Glickman, M. E. (2001). Dynamic paired comparison models with stochastic variances. *Journal of Applied Statistics*, 28(6).
+5. Glickman, M. E. (2012). Example of the Glicko-2 system. http://www.glicko.net/glicko/glicko2.pdf
+6. Hoffman, M. D., & Gelman, A. (2014). The No-U-Turn sampler: adaptively setting path lengths in Hamiltonian Monte Carlo. *Journal of Machine Learning Research*, 15.
+7. Kovalchik, S. (2016). Searching for the GOAT of tennis win prediction. *Journal of Quantitative Analysis in Sports*, 12(3).
+8. Salvatier, J., Wiecki, T. V., & Fonnesbeck, C. (2016). Probabilistic programming in Python using PyMC3. *PeerJ Computer Science*, 2.
+9. Original Erdos Institute project: https://github.com/PubohH/2025-Summer-Erdos-Elo-Project
