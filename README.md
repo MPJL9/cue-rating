@@ -47,6 +47,24 @@ A detailed paper-style writeup covering the methodology, parameter optimization,
 | ELO | Divisor | 400 | 327.15 |
 | Glicko-2 | Tau | 0.5 | 1.488 |
 
+### Bayesian Bradley-Terry Extension
+
+A third rating system: a fully Bayesian Bradley-Terry model fit via PyMC + NUTS sampling. Each player gets a full posterior distribution over skill, not just a point estimate. Predictions use posterior predictive averaging across 8000 samples for proper uncertainty propagation.
+
+Restricted to 29 active players (≥100 matches in the past 2 years) to keep MCMC tractable. Sampling completes in ~5 seconds.
+
+On 983 elite-vs-elite matches (where both players are in the active set):
+
+| System | Accuracy | Log Loss | Brier |
+|--------|---------:|---------:|------:|
+| ELO (full history) | 55.5% | 0.712 | 0.256 |
+| Glicko-2 (full history) | 57.9% | 0.698 | 0.248 |
+| **Bayesian BT (recent only)** | **63.0%** | **0.655** | **0.231** |
+
+The Bayesian model wins on this restricted slice because (1) it uses recent data only, and (2) posterior predictive averaging produces better-calibrated probabilities than point estimates. On the broad test set it cannot beat the gradient boosting model, but it adds principled uncertainty quantification — a feature ELO and Glicko-2 cannot offer.
+
+See [docs/bayesian_bt_explained.md](docs/bayesian_bt_explained.md) for a teaching-style derivation of the model.
+
 ## Architecture
 
 ```
