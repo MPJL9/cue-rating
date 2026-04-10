@@ -57,6 +57,16 @@ A "70% prediction" should win ~70% of the time. Our best model achieves Expected
 
 ![Calibration plot](data/processed/calibration_plot.png)
 
+We also test **isotonic recalibration** as a post-hoc fix for miscalibrated probabilities (60/20/20 train/cal/test split):
+
+| Model | ECE (raw) | ECE (recalibrated) |
+|---|---:|---:|
+| Pure ELO | 0.016 | 0.022 (already calibrated) |
+| **Pure Glicko-2** | **0.041** | **0.019 (cut in half)** |
+| GB (6 features) | 0.019 | 0.025 (already calibrated) |
+
+**Diagnostic value**: Glicko-2 was overconfident; ELO and GB were not. Isotonic recalibration fixes Glicko-2 but adds noise to the others.
+
 ### MLE-Optimized Parameters
 
 | System | Parameter | Default | Optimized |

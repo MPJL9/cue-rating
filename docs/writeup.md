@@ -269,6 +269,24 @@ A model is well-calibrated if predicted probabilities correspond to actual frequ
 
 The Gradient Boosting model on the 6-feature set achieves ECE = 0.011, meaning predicted probabilities deviate from actual frequencies by only ~1 percentage point on average. Pure Glicko-2 has the worst calibration (ECE = 0.049), indicating overconfident predictions; pure ELO is well-calibrated despite a slightly lower accuracy.
 
+### 4.7 Isotonic Recalibration
+
+When a model's predicted probabilities are systematically miscalibrated, **isotonic regression** can fix it. We fit a non-parametric monotonic mapping from raw predicted probabilities to recalibrated probabilities on a held-out calibration set, then apply it to the test set. This can only improve calibration if the original model is genuinely miscalibrated; for an already well-calibrated model, isotonic regression is just adding overfitting noise.
+
+We split the data three ways: 60% train, 20% calibration, 20% test. We test isotonic recalibration on three baselines:
+
+| Model | Accuracy | Brier (raw → cal) | ECE (raw → cal) | Outcome |
+|-------|----------|-------------------|------------------|---------|
+| Pure ELO | 0.682 | 0.2012 → 0.2019 | 0.0163 → 0.0225 | Already calibrated; isotonic adds noise |
+| Pure Glicko-2 | 0.681 | 0.2023 → 0.2008 | **0.0407 → 0.0189** | Was miscalibrated; isotonic fixes it |
+| GB (6 features) | 0.692 | 0.1948 → 0.1949 | 0.0185 → 0.0254 | Already calibrated; isotonic adds noise |
+
+The result is exactly the diagnostic we hoped for. **Glicko-2 was overconfident** — its raw match win probabilities were systematically too extreme (predicting 80% when the true rate was ~70%, etc.) — and isotonic regression cuts its ECE in half. **ELO and Gradient Boosting** were already well-calibrated, and forcing them through an isotonic mapping fit on a small calibration set introduces noise that slightly degrades both Brier and ECE.
+
+The practical implication: if you ever deploy Glicko-2 raw probabilities to a downstream user (e.g., a Kelly-criterion betting system), you should pass them through an isotonic recalibrator. ELO and the gradient boosting model can be deployed as-is.
+
+This is the standard recipe in production ML systems — train the model, then sanity-check calibration on a held-out set and apply post-hoc recalibration if needed.
+
 ---
 
 ## 5. Discussion
