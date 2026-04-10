@@ -1,7 +1,7 @@
 # Rating Systems and Match Prediction for Professional Snooker: A Comparative Study
 
 **Author:** Tianxiang Liu
-**Project repository:** https://github.com/MPJL9/cue-rating
+**Repository:** https://github.com/MPJL9/cue-rating
 **Live demo:** https://cue-rating.onrender.com
 **Date:** April 2026
 
@@ -239,7 +239,7 @@ The Bayesian model wins on all three metrics. Two factors contribute:
 
 Note that on the broader test set (Section 4.1, including matches with one or both players outside the elite group), the Bayesian model cannot make predictions and so its accuracy advantage doesn't extend automatically. The classical 70.2% from gradient boosting on rating-system features remains the best general-purpose model.
 
-The Bayesian extension is most valuable as a *probabilistic modeling exercise* — it demonstrates principled uncertainty quantification, which is the foundation for any Bayesian decision-making in trading, recommendation, or active learning.
+The Bayesian extension adds principled uncertainty quantification — full posterior distributions over player skill rather than point estimates. This is relevant wherever probabilistic decision-making depends on honest confidence intervals rather than single-number predictions.
 
 ### 4.5 Why the Elite-vs-Elite Accuracy Looks Lower
 
@@ -283,7 +283,7 @@ We split the data three ways: 60% train, 20% calibration, 20% test. We test isot
 
 The result is exactly the diagnostic we hoped for. **Glicko-2 was overconfident** — its raw match win probabilities were systematically too extreme (predicting 80% when the true rate was ~70%, etc.) — and isotonic regression cuts its ECE in half. **ELO and Gradient Boosting** were already well-calibrated, and forcing them through an isotonic mapping fit on a small calibration set introduces noise that slightly degrades both Brier and ECE.
 
-The practical implication: if you ever deploy Glicko-2 raw probabilities to a downstream user (e.g., a Kelly-criterion betting system), you should pass them through an isotonic recalibrator. ELO and the gradient boosting model can be deployed as-is.
+The practical implication: if deploying Glicko-2 raw probabilities to a downstream system that depends on calibrated inputs, they should be passed through an isotonic recalibrator. ELO and the gradient boosting model can be deployed as-is.
 
 This is the standard recipe in production ML systems — train the model, then sanity-check calibration on a held-out set and apply post-hoc recalibration if needed.
 
