@@ -20,24 +20,42 @@ A detailed paper-style writeup covering the methodology, parameter optimization,
 
 **117,530 matches** from 1982-2026 across **1,108 tournaments** and **3,832+ players**.
 
-### Rating System Comparison (34,521 matches, last 300 tournaments)
+### Top 15 Active Players
 
-| Metric | ELO | Glicko-2 | Winner |
-|--------|-----|----------|--------|
-| Accuracy | 69.1% | 68.8% | ELO |
-| Log Loss | 0.586 | 0.594 | ELO |
-| Calibration (ECE) | 0.394 | 0.382 | Glicko-2 |
-| Frame MAE | 0.218 | 0.214 | Glicko-2 |
+![Top 15 players](data/processed/top_players.png)
+
+### Beat the Public Baseline
+
+On 4,777 held-out matches from 2015-2019, our gradient boosting model outperforms the official World Snooker Tour rankings by **5.2 percentage points in accuracy and 12% lower log loss**:
+
+![Rankings benchmark](data/processed/rankings_benchmark.png)
 
 ### ML Model Performance
 
+15 model configurations tested across 5 feature sets and 3 classifiers. The best is Gradient Boosting on just 6 features (ELO and Glicko-2 predictions plus rating deviations) — adding more features doesn't help.
+
+![Accuracy comparison](data/processed/accuracy_comparison.png)
+
 | Model | Features | Accuracy |
 |-------|----------|----------|
-| Gradient Boosting | All (ELO + Glicko-2 + stats) | **70.1%** |
-| Logistic Regression | All features | 70.0% |
-| Gradient Boosting | Combined ratings only | 69.9% |
-| Random Forest | Glicko-2 only (4 features) | 69.5% |
-| Pure ELO baseline | — | 68.5% |
+| **Gradient Boosting** | **Ratings combined (6)** | **70.2%** |
+| Logistic Regression | All features (35) | 70.1% |
+| Gradient Boosting | All features (35) | 69.9% |
+| Random Forest | Glicko-2 only (4) | 69.5% |
+| Pure ELO baseline | — | 68.4% |
+| Pure Glicko-2 baseline | — | 68.0% |
+
+### Feature Importance
+
+The two rating-system match win probabilities account for **74.5%** of the gradient boosting model's predictive power. The Glicko-2 RD (uncertainty) contributes another 6.3%.
+
+![Feature importance](data/processed/feature_importance.png)
+
+### Calibration
+
+A "70% prediction" should win ~70% of the time. Our best model achieves Expected Calibration Error of **0.011** — nearly perfect calibration.
+
+![Calibration plot](data/processed/calibration_plot.png)
 
 ### MLE-Optimized Parameters
 
@@ -53,15 +71,15 @@ A third rating system: a fully Bayesian Bradley-Terry model fit via PyMC + NUTS 
 
 Restricted to 29 active players (≥100 matches in the past 2 years) to keep MCMC tractable. Sampling completes in ~5 seconds.
 
-On 983 elite-vs-elite matches (where both players are in the active set):
+**On 983 elite-vs-elite matches**, the Bayesian model wins on all three metrics:
 
-| System | Accuracy | Log Loss | Brier |
-|--------|---------:|---------:|------:|
-| ELO (full history) | 55.5% | 0.712 | 0.256 |
-| Glicko-2 (full history) | 57.9% | 0.698 | 0.248 |
-| **Bayesian BT (recent only)** | **63.0%** | **0.655** | **0.231** |
+![Three-system comparison](data/processed/three_system_comparison.png)
 
-The Bayesian model wins on this restricted slice because (1) it uses recent data only, and (2) posterior predictive averaging produces better-calibrated probabilities than point estimates. On the broad test set it cannot beat the gradient boosting model, but it adds principled uncertainty quantification — a feature ELO and Glicko-2 cannot offer.
+The Bayesian model wins on this restricted slice because (1) it uses recent data only, while ELO and Glicko-2 carry years of cumulative history that lag current form, and (2) posterior predictive averaging produces better-calibrated probabilities than single point estimates. On the broad test set, the gradient boosting model is still better (Bayesian only covers 29 players), but the Bayesian extension adds principled uncertainty quantification — a feature ELO and Glicko-2 cannot offer.
+
+**Posterior credible intervals** for each top player — wider intervals mean less data or more variability:
+
+![Bayesian skill intervals](data/processed/bayesian_skill_intervals.png)
 
 See [docs/bayesian_bt_explained.md](docs/bayesian_bt_explained.md) for a teaching-style derivation of the model.
 

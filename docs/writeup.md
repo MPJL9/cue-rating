@@ -114,6 +114,10 @@ This properly propagates skill uncertainty through to prediction uncertainty —
 
 A standalone document at [`docs/bayesian_bt_explained.md`](bayesian_bt_explained.md) walks through the derivation in detail.
 
+The output is a per-player posterior distribution over skill, summarized as posterior mean ± 95% credible interval. Wider intervals indicate either fewer recent matches or more variable performance:
+
+![Top 20 players by Bayesian skill with 95% credible intervals](../data/processed/bayesian_skill_intervals.png)
+
 ### 3.4 Parameter Optimization via MLE
 
 Treating each frame as a Bernoulli trial with probability `p_i` predicted by the rating system, the log-likelihood of observed frame scores across all matches is:
@@ -168,6 +172,8 @@ Models: Logistic Regression (with feature scaling), Random Forest (n=200, max_de
 
 The best model is **Gradient Boosting on six rating features**, achieving 70.24% accuracy. Notably, this uses only the predictions of ELO and Glicko-2 plus the two players' rating deviations — adding 29 more features (raw stats, head-to-head, momentum, inactivity) yields no improvement and sometimes hurts performance.
 
+![Accuracy across all model configurations](../data/processed/accuracy_comparison.png)
+
 ### 4.2 Feature Importance
 
 Feature importances from the Gradient Boosting model on the 35-feature set:
@@ -187,6 +193,10 @@ Feature importances from the Gradient Boosting model on the 35-feature set:
 
 The two rating-system match win probabilities account for **74.5% of the model's total feature importance**. Glicko-2's RD parameter — uniquely available among rating-system outputs — contributes another 6.3%, suggesting that uncertainty quantification adds value beyond point estimates of skill.
 
+![Feature importance](../data/processed/feature_importance.png)
+
+![Calibration plot: predicted vs actual win probability for four models](../data/processed/calibration_plot.png)
+
 ### 4.3 Comparison Against the Official World Rankings
 
 The most natural baseline for any sports prediction model is the official ranking system that the sport's governing body publishes. World Snooker Tour rankings are based on prize money earned over the prior two seasons and are heavily referenced by bookmakers when setting odds. We compare four approaches on a held-out test set of 4,777 matches from the 2015–2019 period (where both modern data and ranking information are available):
@@ -201,6 +211,8 @@ The most natural baseline for any sports prediction model is the official rankin
 The world ranking baseline uses the prior season's ranking and predicts via a soft sigmoid on the log rank ratio. Coverage is 41% of test matches (rankings often miss recent professionals or qualifiers); for matches without ranking data, we fall back to a 0.5 prior.
 
 **Our model beats the official rankings by 5.2 percentage points in accuracy and reduces log loss by 12%**. Pure ELO alone beats rankings by 4.8 points, suggesting that even a simple frame-weighted Elo update extracts more signal than the ranking points formula. The marginal gain from our full ML pipeline over pure ELO is small but consistent across all three metrics, primarily attributable to the Glicko-2 RD feature.
+
+![Our model vs World Rankings on 4,777 held-out matches](../data/processed/rankings_benchmark.png)
 
 These results are conservative for two reasons:
 1. We use only the prior season's ranking, while bookmakers update odds with current information.
@@ -217,6 +229,8 @@ We evaluate ELO, Glicko-2, and Bayesian Bradley-Terry on the same held-out test 
 | ELO (full history) | 0.5554 | 0.7123 | 0.2559 |
 | Glicko-2 (full history) | 0.5788 | 0.6979 | 0.2483 |
 | **Bayesian BT (recent only)** | **0.6297** | **0.6547** | **0.2314** |
+
+![Three-system comparison on 983 elite-vs-elite matches](../data/processed/three_system_comparison.png)
 
 The Bayesian model wins on all three metrics. Two factors contribute:
 
