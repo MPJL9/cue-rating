@@ -91,7 +91,7 @@ The Bayesian model wins on this restricted slice because (1) it uses recent data
 
 ![Bayesian skill intervals](data/processed/bayesian_skill_intervals.png)
 
-See [docs/bayesian_bt_explained.md](docs/bayesian_bt_explained.md) for a teaching-style derivation of the model.
+The Bayesian model is explained in detail in the technical writeup (Section 3.3) and in the project repository notes.
 
 ## Architecture
 

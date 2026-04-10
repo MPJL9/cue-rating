@@ -32,4 +32,3 @@ Snooker rating systems (ELO, Glicko-2, Bayesian Bradley-Terry) with MLE-optimize
 - **Live demo:** https://cue-rating.onrender.com
 - **Code:** https://github.com/MPJL9/cue-rating
 - **Technical writeup:** [docs/writeup.md](docs/writeup.md)
-- **Bayesian model explainer:** [docs/bayesian_bt_explained.md](docs/bayesian_bt_explained.md)

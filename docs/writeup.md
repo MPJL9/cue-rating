@@ -112,7 +112,7 @@ P(i beats j in a frame) ≈ (1/N) · Σ_k sigmoid(s_i^(k) - s_j^(k))
 
 This properly propagates skill uncertainty through to prediction uncertainty — a feature ELO and Glicko-2 cannot offer.
 
-A standalone document at [`docs/bayesian_bt_explained.md`](bayesian_bt_explained.md) walks through the derivation in detail.
+The derivation and motivation are discussed in detail in the project notes.
 
 The output is a per-player posterior distribution over skill, summarized as posterior mean ± 95% credible interval. Wider intervals indicate either fewer recent matches or more variable performance:
 
