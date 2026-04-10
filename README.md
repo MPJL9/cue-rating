@@ -207,6 +207,7 @@ Maximized using `scipy.optimize.minimize` over the full match history.
 
 - **1982-2020**: Kaggle dataset (cuetracker.net origin)
 - **2020-2025**: Scraped from cuetracker.net
+- **2025-2026 season**: 23 professional tournaments (World Championship, Masters, UK Championship, etc.) scraped April 2026
 - **Format**: `player1, player2, score1, score2, best_of, tournament_id, date, year`
 - Player1 is always the winner (`score1 >= score2`)
 
@@ -224,11 +225,11 @@ new = scrape_new_matches('data/raw/matches.csv', years=[2025, 2026])
 
 | Operation | Time |
 |-----------|------|
-| ELO: process 115K matches | 0.34s |
-| Glicko-2: process 115K matches | 2.1s |
+| ELO: process 117K matches | 0.27s |
+| Glicko-2: process 117K matches | 2.1s |
 | Feature generation (300 tournaments) | 5.7s |
-| Full API startup | 2.6s |
-| MLE optimization (ELO) | ~135s |
+| API startup (with precomputed cache) | 0.12s |
+| MLE parameter search (replays all matches ~17 times to find optimal K and divisor) | ~135s |
 
 ## Testing
 

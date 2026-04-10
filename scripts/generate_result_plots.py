@@ -98,14 +98,14 @@ def plot_rankings_benchmark():
         data = json.load(f)
 
     methods_order = ["coin_flip", "world_rankings", "pure_elo", "our_model"]
-    labels = ["Coin Flip\n(baseline)", "World Rankings\n(public)", "Pure ELO\n(ours)", "ML Model\n(ours)"]
+    labels = ["Coin\nFlip", "World\nRankings", "Pure\nELO", "Our\nModel"]
     colors = [GRAY, ORANGE, BLUE, GREEN]
 
     accuracy = [data["methods"][m]["accuracy"] for m in methods_order]
     log_loss = [data["methods"][m]["log_loss"] for m in methods_order]
     brier = [data["methods"][m]["brier"] for m in methods_order]
 
-    fig, axes = plt.subplots(1, 3, figsize=(13, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(14, 5))
 
     bars = axes[0].bar(labels, accuracy, color=colors, edgecolor="#333")
     axes[0].set_ylabel("Accuracy")
@@ -129,6 +129,9 @@ def plot_rankings_benchmark():
     for bar, val in zip(bars, brier):
         axes[2].text(bar.get_x() + bar.get_width()/2, val + 0.002,
                      f"{val:.3f}", ha="center", fontweight="bold", fontsize=10)
+
+    for ax in axes:
+        ax.tick_params(axis="x", labelsize=9)
 
     fig.suptitle(
         f"Our Model vs Public Baselines on {data['test_size']} Held-Out Matches (2015-2019)",
